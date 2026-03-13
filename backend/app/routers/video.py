@@ -116,24 +116,24 @@ async def ws_render(websocket: WebSocket, project_id: str):
     duration_args = ["-t", str(audio_duration)] if audio_duration > 0 else ["-shortest"]
 
     if mode == "webcodecs":
-        # WebCodecs sends pre-encoded H.264 Annex B.
-        # Copying the stream with -c:v copy preserves WebCodecs GPU encoding quality,
-        # but the Annex B bitstream often has no SEI timing → FFmpeg assigns PTS=0
-        # for every frame → -shortest then cuts the whole video to ~0 s.
+        # WebCodecs sends pre-encoded H.264 Annex B from the browser's GPU encoder.
+        # The browser does ALL the heavy encoding — server only muxes into MP4.
         #
-        # Fix: decode the H.264 input and re-encode with libx264 so that FFmpeg
-        # generates monotonic PTS itself.  "ultrafast" keeps server CPU time low;
-        # the browser already did the heavy canvas work.
+        # Timestamp fix: Chrome WebCodecs Annex B has no SEI timing info, so FFmpeg
+        # would assign PTS=0 to every frame with plain -c:v copy.
+        # Solution: -fflags +genpts makes FFmpeg regenerate correct monotonic PTS
+        # from the -r <fps> value, while still copying the original H.264 stream.
+        # This keeps server CPU at near-zero (no re-encoding).
         ffmpeg_cmd = [
             "ffmpeg", "-y",
+            "-fflags", "+genpts",    # regenerate PTS — fixes the 1-second bug
             "-f", "h264",
-            "-r", str(fps),          # tell the H.264 demuxer the framerate
+            "-r", str(fps),          # framerate used to generate correct PTS
             "-i", "pipe:0",
             "-i", str(audio_file),
             "-map", "0:v:0", "-map", "1:a:0",
-            "-c:v", "libx264", "-preset", "ultrafast", "-crf", "18",
+            "-c:v", "copy",          # zero re-encoding — preserve browser GPU quality
             "-c:a", "aac", "-b:a", "320k", "-ar", "48000",
-            "-pix_fmt", "yuv420p",
             "-movflags", "+faststart",
             *duration_args,
             str(output_file),
