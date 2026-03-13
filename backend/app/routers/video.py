@@ -2,7 +2,11 @@ import asyncio
 import json
 import logging
 import subprocess
+import time
 from pathlib import Path
+
+from app.activity import log_action
+from app.database import AsyncSessionLocal
 
 logger = logging.getLogger(__name__)
 
@@ -20,6 +24,22 @@ from app.models.schemas import VideoGenerateRequest, VideoStatus
 router = APIRouter(prefix="/api/video", tags=["video"])
 
 _jobs: dict[str, VideoStatus] = {}
+
+
+async def _get_user_from_token(token: str | None):
+    """Return the User object for a valid JWT token, or None."""
+    if not token:
+        return None
+    try:
+        payload = jwt.decode(token, settings.jwt_secret, algorithms=["HS256"])
+        user_id = payload.get("sub")
+        if not user_id:
+            return None
+        async with AsyncSessionLocal() as db:
+            result = await db.execute(select(User).where(User.id == user_id))
+            return result.scalar_one_or_none()
+    except JWTError:
+        return None
 
 
 async def _ws_auth_by_token(token: str | None) -> bool:
@@ -58,7 +78,9 @@ async def generate_video(req: VideoGenerateRequest, bg: BackgroundTasks):
 async def ws_render(websocket: WebSocket, project_id: str):
     await websocket.accept()
 
-    if not await _ws_auth(websocket):
+    token = websocket.query_params.get("token")
+    ws_user = await _get_user_from_token(token)
+    if not ws_user:
         await websocket.send_json({"type": "error", "message": "Unauthorized"})
         await websocket.close(code=4001)
         return
@@ -105,6 +127,11 @@ async def ws_render(websocket: WebSocket, project_id: str):
         "[render] project=%s mode=%s fps=%s total_frames=%s audio_duration=%.3f",
         project_id, mode, fps, total_frames, audio_duration,
     )
+    render_start_time = time.monotonic()
+    async with AsyncSessionLocal() as _db:
+        await log_action(_db, ws_user, "render_start",
+                         project_id=project_id, mode=mode, fps=fps,
+                         total_frames=total_frames, audio_duration=audio_duration)
 
     output_dir = settings.output_path
     output_dir.mkdir(parents=True, exist_ok=True)
@@ -215,6 +242,14 @@ async def ws_render(websocket: WebSocket, project_id: str):
         await websocket.close()
         return
 
+    render_elapsed = round(time.monotonic() - render_start_time, 1)
+    output_size = output_file.stat().st_size if output_file.exists() else 0
+    async with AsyncSessionLocal() as _db:
+        await log_action(_db, ws_user, "render_complete",
+                         project_id=project_id, mode=mode,
+                         elapsed_sec=render_elapsed, output_bytes=output_size,
+                         audio_duration=audio_duration)
+
     _jobs[project_id] = VideoStatus(
         project_id=project_id, status="done", progress=1.0, output_filename=output_file.name,
     )
@@ -244,11 +279,16 @@ async def download_video(project_id: str, token: str | None = Query(None)):
     download (no fetch/blob dance needed, supports large files without
     memory issues).
     """
-    if not await _ws_auth_by_token(token):
+    dl_user = await _get_user_from_token(token)
+    if not dl_user:
         raise HTTPException(401, "Unauthorized")
     output = settings.output_path / f"{project_id}.mp4"
     if not output.exists():
         raise HTTPException(404, "Video not ready")
+    async with AsyncSessionLocal() as _db:
+        await log_action(_db, dl_user, "download",
+                         project_id=project_id,
+                         output_bytes=output.stat().st_size)
     return FileResponse(
         output,
         media_type="video/mp4",

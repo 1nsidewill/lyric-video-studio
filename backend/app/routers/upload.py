@@ -3,9 +3,13 @@ import uuid
 from pathlib import Path
 
 from fastapi import APIRouter, Depends, File, HTTPException, UploadFile
+from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.activity import log_action
 from app.config import settings
+from app.database import get_db
 from app.deps import get_current_user
+from app.models.db_models import User
 from app.routers.project import _cleanup_old_projects
 
 router = APIRouter(
@@ -31,23 +35,43 @@ def _save_upload(file: UploadFile, subdir: str, allowed: set[str]) -> dict:
     with open(dest, "wb") as buf:
         shutil.copyfileobj(file.file, buf)
 
-    return {"project_id": project_id, "filename": dest.name, "path": str(dest)}
+    return {"project_id": project_id, "filename": dest.name, "path": str(dest), "_dest": dest}
 
 
 @router.post("/audio")
-async def upload_audio(file: UploadFile = File(...)):
-    return _save_upload(file, "audio", ALLOWED_AUDIO)
+async def upload_audio(
+    file: UploadFile = File(...),
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    result = _save_upload(file, "audio", ALLOWED_AUDIO)
+    size = Path(result.pop("_dest")).stat().st_size
+    await log_action(db, current_user, "upload",
+                     project_id=result["project_id"],
+                     file_type="audio", filename=file.filename, size_bytes=size)
+    return result
 
 
 @router.post("/artwork")
-async def upload_artwork(file: UploadFile = File(...)):
-    return _save_upload(file, "artwork", ALLOWED_IMAGE)
+async def upload_artwork(
+    file: UploadFile = File(...),
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    result = _save_upload(file, "artwork", ALLOWED_IMAGE)
+    size = Path(result.pop("_dest")).stat().st_size
+    await log_action(db, current_user, "upload",
+                     project_id=result["project_id"],
+                     file_type="artwork", filename=file.filename, size_bytes=size)
+    return result
 
 
 @router.post("/all")
 async def upload_all(
     audio: UploadFile = File(...),
     artwork: UploadFile = File(...),
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
 ):
     """Upload audio and artwork together, returns a single project_id."""
     audio_ext = Path(audio.filename or "").suffix.lower()
@@ -74,6 +98,12 @@ async def upload_all(
         shutil.copyfileobj(artwork.file, f)
 
     _cleanup_old_projects()
+
+    await log_action(db, current_user, "upload",
+                     project_id=project_id,
+                     audio=audio.filename, artwork=artwork.filename,
+                     audio_bytes=audio_dest.stat().st_size,
+                     artwork_bytes=art_dest.stat().st_size)
 
     return {
         "project_id": project_id,

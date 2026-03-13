@@ -4,9 +4,13 @@ from pathlib import Path
 
 from fastapi import APIRouter, Depends, HTTPException
 from fastapi.responses import FileResponse
+from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.activity import log_action
 from app.config import settings
+from app.database import get_db
 from app.deps import get_current_user
+from app.models.db_models import User
 from app.models.schemas import ProjectData
 
 router = APIRouter(prefix="/api/project", tags=["project"])
@@ -83,11 +87,23 @@ async def get_project(project_id: str):
     }
 
 
-@router.post("/{project_id}/save", dependencies=_auth)
-async def save_project(project_id: str, data: ProjectData):
+@router.post("/{project_id}/save")
+async def save_project(
+    project_id: str,
+    data: ProjectData,
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
     d = _project_dir(project_id)
     meta_file = d / "project.json"
     meta_file.write_text(data.model_dump_json(indent=2))
+    synced = sum(1 for l in (data.lyrics or []) if (l.start_time or 0) > 0)
+    await log_action(db, current_user, "save",
+                     project_id=project_id,
+                     title=data.title, artist=data.artist,
+                     lyrics_total=len(data.lyrics or []),
+                     lyrics_synced=synced,
+                     audio_duration=data.audio_duration)
     return {"status": "saved"}
 
 
