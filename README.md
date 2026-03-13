@@ -75,6 +75,10 @@ cd lyric-video-studio
 
 ```bash
 cd backend
+
+# Copy and edit environment variables
+cp .env.example .env
+
 uv sync
 uv run uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
 ```
@@ -93,6 +97,34 @@ npm run dev
 프론트엔드가 `http://localhost:5173` 에서 실행됩니다.
 
 브라우저에서 `http://localhost:5173` 접속 후 사용하면 됩니다.
+
+---
+
+## ⚙️ Environment Variables
+
+백엔드는 `backend/.env` 파일로 설정합니다. `backend/.env.example` 을 복사해서 사용하세요.
+
+```bash
+cp backend/.env.example backend/.env
+```
+
+| Variable | Default | Description |
+|---|---|---|
+| `APP_ENV` | `development` | 실행 환경 (`development` \| `production`) |
+| `UPLOAD_DIR` | `uploads` | 업로드 파일 저장 디렉토리 (오디오, 앨범아트 등) |
+| `OUTPUT_DIR` | `output` | 렌더된 MP4 파일 출력 디렉토리 |
+| `MAX_UPLOAD_SIZE_MB` | `100` | 파일 업로드 최대 허용 크기 (MB) |
+| `CORS_ORIGINS` | `http://localhost:5173` | 허용할 프론트엔드 Origin (쉼표로 여러 개 구분) |
+
+**프로덕션 배포 예시:**
+
+```env
+APP_ENV=production
+UPLOAD_DIR=/var/data/lyric-studio/uploads
+OUTPUT_DIR=/var/data/lyric-studio/output
+MAX_UPLOAD_SIZE_MB=500
+CORS_ORIGINS=https://your-domain.com,https://www.your-domain.com
+```
 
 ---
 
