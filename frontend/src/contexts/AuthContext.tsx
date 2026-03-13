@@ -43,8 +43,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       body: JSON.stringify({ email, password }),
     });
     if (!res.ok) {
-      const err = await res.json();
-      throw new Error(err.detail || '로그인 실패');
+      const text = await res.text();
+      let detail = '로그인 실패';
+      try { detail = JSON.parse(text).detail || detail; } catch { /* HTML error page */ }
+      throw new Error(detail);
     }
     const data = await res.json();
     localStorage.setItem('token', data.access_token);
