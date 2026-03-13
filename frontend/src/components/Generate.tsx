@@ -118,7 +118,12 @@ export default function Generate({ projectId, onBack, onBackToSync }: Props) {
         if (l.singer) getSingerColor(l.singer);
       }
 
-      const duration = await getAudioDuration(projectId);
+      let duration = await getAudioDuration(projectId);
+      // If getAudioDuration returns invalid value, fall back to saved audio_duration
+      if (!duration || !isFinite(duration) || duration < 1) {
+        duration = project.audio_duration ?? 0;
+      }
+      if (duration < 1) throw new Error('오디오 길이를 불러올 수 없습니다. 다시 시도해주세요.');
       const fps = 60;
       const totalFrames = Math.ceil(duration * fps);
       const W = 1920, H = 1080;
@@ -288,17 +293,16 @@ export default function Generate({ projectId, onBack, onBackToSync }: Props) {
   const copyDesc = () => { navigator.clipboard.writeText(desc); setCopied(true); setTimeout(() => setCopied(false), 2000); };
   const progressPct = Math.round(progress * 100);
 
-  const handleDownload = useCallback(async () => {
-    const res = await authFetch(`/api/video/download/${projectId}`);
-    const blob = await res.blob();
-    const url = URL.createObjectURL(blob);
+  const handleDownload = useCallback(() => {
+    const token = localStorage.getItem('token') ?? '';
+    const filename = `${(downloadFilename || 'lyric_video').trim()}.mp4`;
+    const url = `/api/video/download/${projectId}?token=${encodeURIComponent(token)}`;
     const a = document.createElement('a');
     a.href = url;
-    a.download = `${(downloadFilename || 'lyric_video').trim()}.mp4`;
+    a.download = filename;
     document.body.appendChild(a);
     a.click();
     document.body.removeChild(a);
-    URL.revokeObjectURL(url);
   }, [projectId, downloadFilename]);
 
   return (

@@ -25,9 +25,9 @@
   --color-danger: #ef4444;
   --color-combo-fire: #d4d4d4;
   --color-combo-ultra: #ffffff;
-  --font-display: 'Syne', sans-serif;
-  --font-body: 'Outfit', sans-serif;
-  --font-mono: 'JetBrains Mono', monospace;
+  --font-display: 'Pretendard', -apple-system, BlinkMacSystemFont, 'Apple SD Gothic Neo', 'Noto Sans KR', sans-serif;
+  --font-body: 'Pretendard', -apple-system, BlinkMacSystemFont, 'Apple SD Gothic Neo', 'Noto Sans KR', sans-serif;
+  --font-mono: 'Pretendard', 'SF Mono', 'Fira Code', monospace;
 }
 
 html, body, #root {

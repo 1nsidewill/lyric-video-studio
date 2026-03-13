@@ -3,7 +3,7 @@ import subprocess
 import tempfile
 from pathlib import Path
 
-from fastapi import APIRouter, Depends, HTTPException, BackgroundTasks, WebSocket, WebSocketDisconnect
+from fastapi import APIRouter, Depends, HTTPException, BackgroundTasks, Query, WebSocket, WebSocketDisconnect
 from fastapi.responses import FileResponse
 from jose import JWTError, jwt
 from sqlalchemy import select
@@ -19,9 +19,8 @@ router = APIRouter(prefix="/api/video", tags=["video"])
 _jobs: dict[str, VideoStatus] = {}
 
 
-async def _ws_auth(websocket: WebSocket) -> bool:
-    """Validate token from query param for WebSocket connections."""
-    token = websocket.query_params.get("token")
+async def _ws_auth_by_token(token: str | None) -> bool:
+    """Validate a raw JWT token string."""
     if not token:
         return False
     try:
@@ -34,6 +33,12 @@ async def _ws_auth(websocket: WebSocket) -> bool:
             return result.scalar_one_or_none() is not None
     except JWTError:
         return False
+
+
+async def _ws_auth(websocket: WebSocket) -> bool:
+    """Validate token from query param for WebSocket connections."""
+    token = websocket.query_params.get("token")
+    return await _ws_auth_by_token(token)
 
 
 @router.post("/generate", dependencies=[Depends(get_current_user)])
@@ -187,8 +192,16 @@ async def video_status(project_id: str):
     return job
 
 
-@router.get("/download/{project_id}", dependencies=[Depends(get_current_user)])
-async def download_video(project_id: str):
+@router.get("/download/{project_id}")
+async def download_video(project_id: str, token: str | None = Query(None)):
+    """Download the rendered video.
+
+    Accepts the JWT token via query param so the browser can do a direct
+    download (no fetch/blob dance needed, supports large files without
+    memory issues).
+    """
+    if not await _ws_auth_by_token(token):
+        raise HTTPException(401, "Unauthorized")
     output = settings.output_path / f"{project_id}.mp4"
     if not output.exists():
         raise HTTPException(404, "Video not ready")
@@ -196,4 +209,5 @@ async def download_video(project_id: str):
         output,
         media_type="video/mp4",
         filename=f"lyric_video_{project_id}.mp4",
+        headers={"Content-Disposition": f"attachment; filename=\"lyric_video_{project_id}.mp4\""},
     )

@@ -7,6 +7,7 @@ import Preview from './components/Preview';
 import Generate from './components/Generate';
 import ProtectedRoute from './components/ProtectedRoute';
 import ChangePasswordModal from './components/ChangePasswordModal';
+import InviteModal from './components/InviteModal';
 import LoginPage from './pages/LoginPage';
 import RegisterPage from './pages/RegisterPage';
 import { useAuth } from './contexts/AuthContext';
@@ -30,6 +31,7 @@ function Studio() {
   const [step, setStep] = useState<AppStep>('upload');
   const [projectId, setProjectId] = useState('');
   const [pwModalOpen, setPwModalOpen] = useState(false);
+  const [inviteModalOpen, setInviteModalOpen] = useState(false);
 
   const currentIdx = STEPS.findIndex(s => s.key === step);
 
@@ -102,6 +104,13 @@ function Studio() {
             <motion.div className="flex items-center gap-1 pl-3 border-l border-white/[0.06]"
               initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.4 }}>
               <span className="text-xs text-white/30 hidden sm:block mr-1">{user?.email}</span>
+              {user?.is_admin && (
+                <button onClick={() => setInviteModalOpen(true)}
+                  title="사용자 초대"
+                  className="text-xs text-white/25 hover:text-white/60 transition-colors px-2 py-1 rounded-lg hover:bg-white/[0.04]">
+                  👤+
+                </button>
+              )}
               <button onClick={() => setPwModalOpen(true)}
                 title="비밀번호 변경"
                 className="text-xs text-white/25 hover:text-white/60 transition-colors px-2 py-1 rounded-lg hover:bg-white/[0.04]">
@@ -140,8 +149,9 @@ function Studio() {
         </AnimatePresence>
       </main>
 
-      {/* Portal-level modal — must be outside any motion.div to keep fixed positioning */}
+      {/* Portal-level modals — must be outside any motion.div to keep fixed positioning */}
       <ChangePasswordModal open={pwModalOpen} onClose={() => setPwModalOpen(false)} />
+      <InviteModal open={inviteModalOpen} onClose={() => setInviteModalOpen(false)} />
     </div>
   );
 }

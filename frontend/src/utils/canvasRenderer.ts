@@ -58,10 +58,10 @@ function buildStaticLayer(
   // Title & artist
   c.textAlign = 'center';
   c.fillStyle = '#ffffff';
-  c.font = `bold ${20 * S}px 'Syne', 'Noto Sans CJK KR', sans-serif`;
+  c.font = `700 ${20 * S}px 'Pretendard', 'Apple SD Gothic Neo', 'Noto Sans KR', 'Malgun Gothic', sans-serif`;
   c.fillText(project.title || 'Untitled', leftW / 2, artY + artSize + 36 * S, leftW - 40 * S);
   c.fillStyle = 'rgba(180, 180, 200, 0.6)';
-  c.font = `${14 * S}px 'Outfit', 'Noto Sans CJK KR', sans-serif`;
+  c.font = `400 ${14 * S}px 'Pretendard', 'Apple SD Gothic Neo', 'Noto Sans KR', 'Malgun Gothic', sans-serif`;
   c.fillText(project.artist || '', leftW / 2, artY + artSize + 58 * S, leftW - 40 * S);
 
   // Divider
@@ -168,7 +168,7 @@ export function drawLyricFrame(
 
       ctx.textAlign = 'center';
       ctx.textBaseline = 'middle';
-      ctx.font = `bold ${24 * S}px 'Syne', 'Noto Sans CJK KR', sans-serif`;
+      ctx.font = `700 ${24 * S}px 'Pretendard', 'Apple SD Gothic Neo', 'Noto Sans KR', 'Malgun Gothic', sans-serif`;
       ctx.fillStyle = '#ffffff';
       ctx.fillText(line.text, rCx, barTop + barFixedH / 2 + CJK_NUDGE, maxW);
       ctx.textBaseline = 'alphabetic';
@@ -177,7 +177,7 @@ export function drawLyricFrame(
       const alpha = Math.max(0.06, 0.85 - dist * 0.18);
       ctx.textAlign = 'center';
       ctx.textBaseline = 'middle';
-      ctx.font = `${18 * S}px 'Outfit', 'Noto Sans CJK KR', sans-serif`;
+      ctx.font = `400 ${18 * S}px 'Pretendard', 'Apple SD Gothic Neo', 'Noto Sans KR', 'Malgun Gothic', sans-serif`;
       ctx.fillStyle = `rgba(165, 165, 190, ${alpha})`;
       ctx.fillText(line.text, rCx, y + lineH / 2 + CJK_NUDGE, maxW);
       ctx.textBaseline = 'alphabetic';
@@ -191,7 +191,7 @@ export function drawLyricFrame(
     const bR = sClrBadge ? sClrBadge[0] : ar;
     const bG = sClrBadge ? sClrBadge[1] : ag;
     const bB = sClrBadge ? sClrBadge[2] : ab;
-    ctx.font = `bold ${13 * S}px 'JetBrains Mono', monospace`;
+    ctx.font = `600 ${13 * S}px 'Pretendard', 'Apple SD Gothic Neo', 'Noto Sans KR', monospace`;
     const metrics = ctx.measureText(activeSinger);
     const bw = Math.round(metrics.width + 24 * S);
     const bh = Math.round(28 * S);
