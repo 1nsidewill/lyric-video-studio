@@ -1,0 +1,36 @@
+# Environment
+.env
+.env.*
+!.env.example
+
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+.venv/
+venv/
+dist/
+*.egg-info/
+.uv/
+
+# Node
+node_modules/
+frontend/dist/
+frontend/.vite/
+
+# Project uploads & renders (user data, not source)
+backend/uploads/
+backend/projects/
+backend/renders/
+*.mp4
+*.mp3
+*.wav
+
+# OS
+.DS_Store
+Thumbs.db
+
+# IDE
+.vscode/
+.idea/
+*.swp

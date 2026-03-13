@@ -1,0 +1,16 @@
+[project]
+name = "lyric-video-maker-backend"
+version = "0.1.0"
+description = "Add your description here"
+readme = "README.md"
+requires-python = ">=3.10"
+dependencies = [
+    "aiofiles>=25.1.0",
+    "fastapi>=0.135.1",
+    "ffmpeg-python>=0.2.0",
+    "pillow>=12.1.1",
+    "pydantic-settings>=2.13.1",
+    "python-multipart>=0.0.22",
+    "uvicorn>=0.41.0",
+    "websockets>=16.0",
+]
