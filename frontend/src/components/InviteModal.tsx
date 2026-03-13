@@ -68,20 +68,23 @@ export default function InviteModal({ open, onClose }: Props) {
             }}
           />
 
-          {/* Modal */}
+          {/* Centering wrapper — flexbox centering avoids transform conflict with Framer Motion */}
+          <div style={{
+            position: 'fixed', inset: 0,
+            zIndex: 9999,
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            padding: '16px',
+            pointerEvents: 'none',
+          }}>
           <motion.div
             initial={{ opacity: 0, scale: 0.92, y: 20 }}
             animate={{ opacity: 1, scale: 1, y: 0 }}
             exit={{ opacity: 0, scale: 0.92, y: 20 }}
             transition={{ type: 'spring', stiffness: 300, damping: 28 }}
             style={{
-              position: 'fixed',
-              top: '50%', left: '50%',
-              transform: 'translate(-50%, -50%)',
-              zIndex: 9999,
+              pointerEvents: 'auto',
               width: '100%',
               maxWidth: '440px',
-              padding: '0 16px',
             }}
           >
             <div style={{
@@ -267,6 +270,7 @@ export default function InviteModal({ open, onClose }: Props) {
               </AnimatePresence>
             </div>
           </motion.div>
+          </div>
         </>
       )}
     </AnimatePresence>
