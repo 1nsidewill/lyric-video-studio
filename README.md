@@ -207,6 +207,77 @@ I just wait for you online
 
 ---
 
+## 🚢 Production Deployment (Docker + Cloudflare Tunnel)
+
+Ubuntu 서버에 Docker Compose + Cloudflare Tunnel로 배포하는 방법입니다.
+
+### 사전 준비
+
+```bash
+# Ubuntu 서버에서
+sudo apt update && sudo apt install -y docker.io docker-compose-v2
+sudo usermod -aG docker $USER
+```
+
+### 1. 서버에 클론
+
+```bash
+cd /srv/app
+git clone https://github.com/1nsidewill/lyric-video-studio.git
+cd lyric-video-studio
+```
+
+### 2. 환경 변수 설정
+
+```bash
+# 루트 .env — Cloudflare Tunnel 토큰
+cp .env.example .env
+nano .env  # TUNNEL_TOKEN 입력
+
+# 백엔드 .env — 앱 설정
+cp backend/.env.example backend/.env
+nano backend/.env
+# 필수: JWT_SECRET (랜덤 문자열), ADMIN_PASSWORD, FRONTEND_URL, CORS_ORIGINS
+```
+
+**JWT_SECRET 생성:**
+```bash
+python3 -c "import secrets; print(secrets.token_hex(32))"
+```
+
+### 3. Cloudflare Tunnel 설정
+
+1. [Cloudflare Zero Trust](https://one.dash.cloudflare.com) → **Networks → Tunnels → Create tunnel**
+2. Tunnel 이름 지정 → **Save tunnel**
+3. 나오는 토큰을 `.env`의 `TUNNEL_TOKEN`에 입력
+4. **Public Hostnames** 탭:
+   - Subdomain: `studio` (또는 원하는 이름)
+   - Domain: 보유한 도메인
+   - Service: `HTTP` → URL: `frontend:80`
+
+### 4. 실행
+
+```bash
+docker compose up -d --build
+```
+
+### 5. 초대 방법 (새 사용자 추가)
+
+로그인 후 API로 초대 이메일 발송:
+```bash
+curl -X POST https://your-domain.com/api/auth/invite \
+  -H "Authorization: Bearer <your-token>" \
+  -H "Content-Type: application/json" \
+  -d '{"email":"friend@example.com"}'
+```
+
+SMTP 설정이 없으면 서버 로그에 회원가입 링크가 출력됩니다:
+```bash
+docker compose logs backend | grep INVITE
+```
+
+---
+
 ## 📁 Project Structure
 
 ```

@@ -1,9 +1,15 @@
 import { useState, useCallback } from 'react';
+import { Routes, Route } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import FileUpload from './components/FileUpload';
 import LyricSync from './components/LyricSync';
 import Preview from './components/Preview';
 import Generate from './components/Generate';
+import ProtectedRoute from './components/ProtectedRoute';
+import ChangePasswordModal from './components/ChangePasswordModal';
+import LoginPage from './pages/LoginPage';
+import RegisterPage from './pages/RegisterPage';
+import { useAuth } from './contexts/AuthContext';
 import type { AppStep } from './types';
 
 const STEPS: { key: AppStep; label: string; icon: string }[] = [
@@ -19,22 +25,19 @@ const pageVariants = {
   exit: { opacity: 0, y: -30, filter: 'blur(8px)', transition: { duration: 0.3 } },
 };
 
-export default function App() {
+function Studio() {
+  const { user, logout } = useAuth();
   const [step, setStep] = useState<AppStep>('upload');
   const [projectId, setProjectId] = useState('');
+  const [pwModalOpen, setPwModalOpen] = useState(false);
 
   const currentIdx = STEPS.findIndex(s => s.key === step);
 
   const navigateTo = useCallback((target: AppStep) => {
     const targetIdx = STEPS.findIndex(s => s.key === target);
-    if (target === 'upload') {
-      setStep('upload');
-      return;
-    }
+    if (target === 'upload') { setStep('upload'); return; }
     if (!projectId) return;
-    if (targetIdx <= currentIdx || targetIdx === currentIdx + 1) {
-      setStep(target);
-    }
+    if (targetIdx <= currentIdx || targetIdx === currentIdx + 1) setStep(target);
   }, [projectId, currentIdx]);
 
   const loadProject = useCallback((id: string, targetStep: AppStep) => {
@@ -54,17 +57,13 @@ export default function App() {
       )}
 
       {/* Nav */}
-      <nav className="relative z-30 border-b border-white/[0.04]" style={{ background: 'rgba(6, 6, 12, 0.8)', backdropFilter: 'blur(20px)' }}>
+      <nav className="relative z-30 border-b border-white/[0.04]"
+        style={{ background: 'rgba(6, 6, 12, 0.8)', backdropFilter: 'blur(20px)' }}>
         <div className="max-w-6xl mx-auto flex items-center justify-between py-4 px-6">
-          <motion.div
-            className="flex items-center gap-2.5 cursor-pointer"
+          <motion.div className="flex items-center gap-2.5 cursor-pointer"
             onClick={() => navigateTo('upload')}
-            initial={{ opacity: 0, x: -20 }}
-            animate={{ opacity: 1, x: 0 }}
-            transition={{ delay: 0.1 }}
-          >
-            <div className="w-8 h-8 rounded-lg flex items-center justify-center"
-              style={{ background: '#ffffff' }}>
+            initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: 0.1 }}>
+            <div className="w-8 h-8 rounded-lg flex items-center justify-center" style={{ background: '#ffffff' }}>
               <span className="text-black text-sm font-bold" style={{ fontFamily: 'var(--font-display)' }}>L</span>
             </div>
             <span className="text-sm font-semibold tracking-wide" style={{ fontFamily: 'var(--font-display)' }}>
@@ -72,48 +71,48 @@ export default function App() {
             </span>
           </motion.div>
 
-          <div className="flex items-center gap-1">
-            {STEPS.map((s, i) => {
-              const isActive = s.key === step;
-              const isDone = currentIdx > i;
-              const isClickable = (isDone || i === currentIdx + 1) && (s.key === 'upload' || projectId);
-              return (
-                <motion.div
-                  key={s.key}
-                  className="flex items-center"
-                  initial={{ opacity: 0, y: -10 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: 0.15 + i * 0.05 }}
-                >
-                  {i > 0 && (
-                    <div className="w-6 h-px mx-1" style={{
-                      background: isDone ? 'rgba(255,255,255,0.3)' : 'rgba(255,255,255,0.06)'
-                    }} />
-                  )}
-                  <div
-                    onClick={() => isClickable && navigateTo(s.key)}
-                    className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium transition-all duration-300 ${
-                      isClickable ? 'cursor-pointer hover:bg-white/[0.04]' : ''
-                    } ${
-                      isActive
-                        ? 'text-white'
-                        : isDone
-                          ? 'text-white/60'
-                          : 'text-[var(--color-text-muted)]'
-                    }`}
-                    style={isActive ? {
-                      background: 'rgba(255, 255, 255, 0.1)',
-                      border: '1px solid rgba(255, 255, 255, 0.2)',
-                    } : { border: '1px solid transparent' }}
-                  >
-                    <span className="font-mono text-[10px] opacity-50" style={{ fontFamily: 'var(--font-mono)' }}>
-                      {isDone ? '✓' : s.icon}
-                    </span>
-                    <span style={{ fontFamily: 'var(--font-display)' }}>{s.label}</span>
-                  </div>
-                </motion.div>
-              );
-            })}
+          <div className="flex items-center gap-3">
+            <div className="flex items-center gap-1">
+              {STEPS.map((s, i) => {
+                const isActive = s.key === step;
+                const isDone = currentIdx > i;
+                const isClickable = (isDone || i === currentIdx + 1) && (s.key === 'upload' || projectId);
+                return (
+                  <motion.div key={s.key} className="flex items-center"
+                    initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: 0.15 + i * 0.05 }}>
+                    {i > 0 && (
+                      <div className="w-6 h-px mx-1"
+                        style={{ background: isDone ? 'rgba(255,255,255,0.3)' : 'rgba(255,255,255,0.06)' }} />
+                    )}
+                    <div onClick={() => isClickable && navigateTo(s.key)}
+                      className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium transition-all duration-300 ${isClickable ? 'cursor-pointer hover:bg-white/[0.04]' : ''} ${isActive ? 'text-white' : isDone ? 'text-white/60' : 'text-[var(--color-text-muted)]'}`}
+                      style={isActive ? { background: 'rgba(255,255,255,0.1)', border: '1px solid rgba(255,255,255,0.2)' } : { border: '1px solid transparent' }}>
+                      <span className="font-mono text-[10px] opacity-50" style={{ fontFamily: 'var(--font-mono)' }}>
+                        {isDone ? '✓' : s.icon}
+                      </span>
+                      <span style={{ fontFamily: 'var(--font-display)' }}>{s.label}</span>
+                    </div>
+                  </motion.div>
+                );
+              })}
+            </div>
+
+            {/* User badge + actions */}
+            <motion.div className="flex items-center gap-1 pl-3 border-l border-white/[0.06]"
+              initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.4 }}>
+              <span className="text-xs text-white/30 hidden sm:block mr-1">{user?.email}</span>
+              <button onClick={() => setPwModalOpen(true)}
+                title="비밀번호 변경"
+                className="text-xs text-white/25 hover:text-white/60 transition-colors px-2 py-1 rounded-lg hover:bg-white/[0.04]">
+                🔑
+              </button>
+              <button onClick={logout}
+                className="text-xs text-white/30 hover:text-white/70 transition-colors px-2 py-1 rounded-lg hover:bg-white/[0.04]">
+                로그아웃
+              </button>
+            </motion.div>
+
           </div>
         </div>
       </nav>
@@ -140,6 +139,23 @@ export default function App() {
           </motion.div>
         </AnimatePresence>
       </main>
+
+      {/* Portal-level modal — must be outside any motion.div to keep fixed positioning */}
+      <ChangePasswordModal open={pwModalOpen} onClose={() => setPwModalOpen(false)} />
     </div>
+  );
+}
+
+export default function App() {
+  return (
+    <Routes>
+      <Route path="/login" element={<LoginPage />} />
+      <Route path="/register" element={<RegisterPage />} />
+      <Route path="/*" element={
+        <ProtectedRoute>
+          <Studio />
+        </ProtectedRoute>
+      } />
+    </Routes>
   );
 }

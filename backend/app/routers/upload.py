@@ -2,12 +2,17 @@ import shutil
 import uuid
 from pathlib import Path
 
-from fastapi import APIRouter, File, UploadFile, HTTPException
+from fastapi import APIRouter, Depends, File, HTTPException, UploadFile
 
 from app.config import settings
+from app.deps import get_current_user
 from app.routers.project import _cleanup_old_projects
 
-router = APIRouter(prefix="/api/upload", tags=["upload"])
+router = APIRouter(
+    prefix="/api/upload",
+    tags=["upload"],
+    dependencies=[Depends(get_current_user)],
+)
 
 ALLOWED_AUDIO = {".mp3", ".wav", ".flac", ".ogg", ".m4a"}
 ALLOWED_IMAGE = {".png", ".jpg", ".jpeg", ".webp", ".bmp"}

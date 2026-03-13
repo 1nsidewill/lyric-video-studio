@@ -1,3 +1,4 @@
+import { authFetch } from '../utils/api';
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { parseSingerTags } from '../utils/parseSingerTags';
@@ -80,7 +81,7 @@ export default function Generate({ projectId, onBack, onBackToSync }: Props) {
   const cancelRef = useRef(false);
 
   useEffect(() => {
-    fetch(`/api/project/${projectId}`).then(r => r.json()).then((p: ProjectData) => {
+    authFetch(`/api/project/${projectId}`).then(r => r.json()).then((p: ProjectData) => {
       setProject(p);
       // Auto-generate filename: "Artist - Title (Lyric Video)"
       const artist = p.artist?.trim() || '';
@@ -127,7 +128,8 @@ export default function Generate({ projectId, onBack, onBackToSync }: Props) {
       canvas.height = H;
 
       const wsProtocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
-      const ws = new WebSocket(`${wsProtocol}//${window.location.host}/api/video/ws/render/${projectId}`);
+      const wsToken = localStorage.getItem('token') ?? '';
+      const ws = new WebSocket(`${wsProtocol}//${window.location.host}/api/video/ws/render/${projectId}?token=${wsToken}`);
       ws.binaryType = 'arraybuffer';
 
       await new Promise<void>((resolve, reject) => {
@@ -287,7 +289,7 @@ export default function Generate({ projectId, onBack, onBackToSync }: Props) {
   const progressPct = Math.round(progress * 100);
 
   const handleDownload = useCallback(async () => {
-    const res = await fetch(`/api/video/download/${projectId}`);
+    const res = await authFetch(`/api/video/download/${projectId}`);
     const blob = await res.blob();
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');

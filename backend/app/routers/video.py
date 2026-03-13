@@ -3,10 +3,15 @@ import subprocess
 import tempfile
 from pathlib import Path
 
-from fastapi import APIRouter, HTTPException, BackgroundTasks, WebSocket, WebSocketDisconnect
+from fastapi import APIRouter, Depends, HTTPException, BackgroundTasks, WebSocket, WebSocketDisconnect
 from fastapi.responses import FileResponse
+from jose import JWTError, jwt
+from sqlalchemy import select
 
 from app.config import settings
+from app.database import AsyncSessionLocal
+from app.deps import get_current_user
+from app.models.db_models import User
 from app.models.schemas import VideoGenerateRequest, VideoStatus
 
 router = APIRouter(prefix="/api/video", tags=["video"])
@@ -14,7 +19,24 @@ router = APIRouter(prefix="/api/video", tags=["video"])
 _jobs: dict[str, VideoStatus] = {}
 
 
-@router.post("/generate")
+async def _ws_auth(websocket: WebSocket) -> bool:
+    """Validate token from query param for WebSocket connections."""
+    token = websocket.query_params.get("token")
+    if not token:
+        return False
+    try:
+        payload = jwt.decode(token, settings.jwt_secret, algorithms=["HS256"])
+        user_id = payload.get("sub")
+        if not user_id:
+            return False
+        async with AsyncSessionLocal() as db:
+            result = await db.execute(select(User).where(User.id == user_id))
+            return result.scalar_one_or_none() is not None
+    except JWTError:
+        return False
+
+
+@router.post("/generate", dependencies=[Depends(get_current_user)])
 async def generate_video(req: VideoGenerateRequest, bg: BackgroundTasks):
     project_dir = settings.upload_path / req.project_id
     if not project_dir.exists():
@@ -27,6 +49,11 @@ async def generate_video(req: VideoGenerateRequest, bg: BackgroundTasks):
 @router.websocket("/ws/render/{project_id}")
 async def ws_render(websocket: WebSocket, project_id: str):
     await websocket.accept()
+
+    if not await _ws_auth(websocket):
+        await websocket.send_json({"type": "error", "message": "Unauthorized"})
+        await websocket.close(code=4001)
+        return
 
     project_dir = settings.upload_path / project_id
     if not project_dir.exists():
@@ -146,7 +173,7 @@ async def ws_render(websocket: WebSocket, project_id: str):
     await websocket.close()
 
 
-@router.get("/status/{project_id}")
+@router.get("/status/{project_id}", dependencies=[Depends(get_current_user)])
 async def video_status(project_id: str):
     job = _jobs.get(project_id)
     if not job:
@@ -160,7 +187,7 @@ async def video_status(project_id: str):
     return job
 
 
-@router.get("/download/{project_id}")
+@router.get("/download/{project_id}", dependencies=[Depends(get_current_user)])
 async def download_video(project_id: str):
     output = settings.output_path / f"{project_id}.mp4"
     if not output.exists():

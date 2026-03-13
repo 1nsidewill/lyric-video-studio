@@ -1,3 +1,4 @@
+import { authFetch } from '../utils/api';
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { motion, AnimatePresence, useAnimation } from 'framer-motion';
 import { useAudioPlayer } from '../hooks/useAudioPlayer';
@@ -52,7 +53,7 @@ export default function LyricSync({ projectId, onComplete }: Props) {
 
   // Load project and restore from localStorage
   useEffect(() => {
-    fetch(`/api/project/${projectId}`)
+    authFetch(`/api/project/${projectId}`)
       .then(r => r.json())
       .then((data: ProjectData) => {
         setProject(data);
@@ -262,7 +263,7 @@ export default function LyricSync({ projectId, onComplete }: Props) {
         ...l,
         end_time: l.end_time ?? (i < arr.length - 1 ? arr[i + 1].start_time : duration),
       }));
-    await fetch(`/api/project/${projectId}/save`, {
+    await authFetch(`/api/project/${projectId}/save`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ ...project, lyrics: merged, audio_duration: duration }),
@@ -277,7 +278,7 @@ export default function LyricSync({ projectId, onComplete }: Props) {
       ...l,
       end_time: l.end_time ?? (i < activeLyrics.length - 1 ? activeLyrics[i + 1].start_time : duration),
     }));
-    await fetch(`/api/project/${projectId}/save`, {
+    await authFetch(`/api/project/${projectId}/save`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ ...project, lyrics: finalLyrics, audio_duration: duration }),

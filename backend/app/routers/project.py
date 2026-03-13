@@ -2,13 +2,17 @@ import json
 import shutil
 from pathlib import Path
 
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, Depends, HTTPException
 from fastapi.responses import FileResponse
 
 from app.config import settings
+from app.deps import get_current_user
 from app.models.schemas import ProjectData
 
 router = APIRouter(prefix="/api/project", tags=["project"])
+
+# Shorthand dependency for protected routes
+_auth = [Depends(get_current_user)]
 
 MAX_PROJECTS = 3
 
@@ -31,7 +35,7 @@ def _cleanup_old_projects():
         shutil.rmtree(old_dir, ignore_errors=True)
 
 
-@router.get("/")
+@router.get("/", dependencies=_auth)
 async def list_projects():
     """Return recent projects sorted by last modified (newest first)."""
     upload_root = settings.upload_path
@@ -54,14 +58,14 @@ async def list_projects():
     return results
 
 
-@router.delete("/{project_id}")
+@router.delete("/{project_id}", dependencies=_auth)
 async def delete_project(project_id: str):
     d = _project_dir(project_id)
     shutil.rmtree(d, ignore_errors=True)
     return {"status": "deleted"}
 
 
-@router.get("/{project_id}")
+@router.get("/{project_id}", dependencies=_auth)
 async def get_project(project_id: str):
     d = _project_dir(project_id)
     meta_file = d / "project.json"
@@ -79,7 +83,7 @@ async def get_project(project_id: str):
     }
 
 
-@router.post("/{project_id}/save")
+@router.post("/{project_id}/save", dependencies=_auth)
 async def save_project(project_id: str, data: ProjectData):
     d = _project_dir(project_id)
     meta_file = d / "project.json"

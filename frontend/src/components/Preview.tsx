@@ -1,3 +1,4 @@
+import { authFetch } from '../utils/api';
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { motion } from 'framer-motion';
 import { useAudioPlayer } from '../hooks/useAudioPlayer';
@@ -31,7 +32,7 @@ export default function Preview({ projectId, onGenerate, onBack }: Props) {
   const { isPlaying, currentTime, duration, toggle, seek } = useAudioPlayer(audioUrl);
 
   useEffect(() => {
-    fetch(`/api/project/${projectId}`).then(r => r.json()).then((data: ProjectData) => {
+    authFetch(`/api/project/${projectId}`).then(r => r.json()).then((data: ProjectData) => {
       const parsed = parseSingerTags(data.lyrics).filter((l: { start_time: number }) => l.start_time > 0);
       setProject({ ...data, lyrics: parsed });
     });

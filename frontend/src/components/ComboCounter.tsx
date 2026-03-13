@@ -14,7 +14,7 @@ function getComboTier(combo: number) {
   return { label: '', color: '#a855f7', glow: 'transparent', scale: 1.0 };
 }
 
-export default function ComboCounter({ combo, lastHitTime }: Props) {
+export default function ComboCounter({ combo, lastHitTime: _lastHitTime }: Props) {
   const tier = getComboTier(combo);
 
   return (

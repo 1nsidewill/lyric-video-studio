@@ -1,3 +1,4 @@
+import { authFetch } from '../utils/api';
 import { useState, useRef, useMemo, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import ImageCropper from './ImageCropper';
@@ -42,12 +43,12 @@ export default function FileUpload({ onUploadComplete, onLoadProject }: Props) {
   const artInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
-    fetch('/api/project/').then(r => r.json()).then(setRecentProjects).catch(() => {});
+    authFetch('/api/project/').then(r => r.json()).then(setRecentProjects).catch(() => {});
   }, []);
 
   const deleteProject = async (id: string, e: React.MouseEvent) => {
     e.stopPropagation();
-    await fetch(`/api/project/${id}`, { method: 'DELETE' });
+    await authFetch(`/api/project/${id}`, { method: 'DELETE' });
     setRecentProjects(prev => prev.filter(p => p.project_id !== id));
   };
 
@@ -79,7 +80,7 @@ export default function FileUpload({ onUploadComplete, onLoadProject }: Props) {
   };
 
   const selectDefaultArt = async (url: string, id: string) => {
-    const res = await fetch(url);
+    const res = await authFetch(url);
     const blob = await res.blob();
     const file = new File([blob], `${id}.jpg`, { type: 'image/jpeg' });
     setArtworkFile(file);
@@ -94,7 +95,7 @@ export default function FileUpload({ onUploadComplete, onLoadProject }: Props) {
       const form = new FormData();
       form.append('audio', audioFile);
       form.append('artwork', artworkFile);
-      const uploadRes = await fetch('/api/upload/all', { method: 'POST', body: form });
+      const uploadRes = await authFetch('/api/upload/all', { method: 'POST', body: form });
       const { project_id, audio_filename, artwork_filename } = await uploadRes.json();
       const rawLines = lyrics.split('\n').filter(l => l.trim());
       let currentSinger: string | undefined;
@@ -109,7 +110,7 @@ export default function FileUpload({ onUploadComplete, onLoadProject }: Props) {
         }
         lyricLines.push({ index: idx++, text: trimmed, start_time: 0, end_time: null, singer: currentSinger });
       }
-      await fetch(`/api/project/${project_id}/save`, {
+      await authFetch(`/api/project/${project_id}/save`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({

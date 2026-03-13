@@ -6,11 +6,16 @@ readme = "README.md"
 requires-python = ">=3.10"
 dependencies = [
     "aiofiles>=25.1.0",
+    "aiosmtplib>=5.1.0",
+    "aiosqlite>=0.22.1",
+    "bcrypt>=5.0.0",
     "fastapi>=0.135.1",
     "ffmpeg-python>=0.2.0",
     "pillow>=12.1.1",
     "pydantic-settings>=2.13.1",
+    "python-jose[cryptography]>=3.5.0",
     "python-multipart>=0.0.22",
+    "sqlalchemy[asyncio]>=2.0.48",
     "uvicorn>=0.41.0",
     "websockets>=16.0",
 ]
