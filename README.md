@@ -4,6 +4,10 @@
 
 앨범아트 + 오디오 + 가사만 있으면, 브라우저에서 바로 YouTube용 리릭 비디오(1080p 60fps MP4)를 만들 수 있는 웹 애플리케이션입니다.
 
+
+https://github.com/user-attachments/assets/ab4e6e86-2beb-4767-b332-e23a5e704d62
+
+
 ---
 
 ## ✨ Features / 주요 기능
