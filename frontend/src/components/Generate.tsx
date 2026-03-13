@@ -175,7 +175,7 @@ export default function Generate({ projectId, onBack, onBackToSync }: Props) {
 
       const mode = useWebCodecs ? 'webcodecs' : 'rawvideo';
 
-      ws.send(JSON.stringify({ mode, fps: useWebCodecs ? fps : 30, width: W, height: H, total_frames: totalFrames }));
+      ws.send(JSON.stringify({ mode, fps: useWebCodecs ? fps : 30, width: W, height: H, total_frames: totalFrames, audio_duration: duration }));
 
       await new Promise<void>((resolve, reject) => {
         const handler = (e: MessageEvent) => {

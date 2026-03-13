@@ -1,7 +1,10 @@
 import asyncio
+import json
+import logging
 import subprocess
-import tempfile
 from pathlib import Path
+
+logger = logging.getLogger(__name__)
 
 from fastapi import APIRouter, Depends, HTTPException, BackgroundTasks, Query, WebSocket, WebSocketDisconnect
 from fastapi.responses import FileResponse
@@ -79,24 +82,60 @@ async def ws_render(websocket: WebSocket, project_id: str):
     width = config.get("width", 1920)
     height = config.get("height", 1080)
     total_frames = config.get("total_frames", 0)
+    # Frontend sends audio_duration; also read from project.json as authoritative fallback
+    audio_duration: float = float(config.get("audio_duration") or 0)
+
+    # Always read from project.json on the server — most reliable source of truth
+    project_json_path = project_dir / "project.json"
+    if project_json_path.exists():
+        try:
+            with open(project_json_path) as f:
+                proj_data = json.load(f)
+            server_duration = float(proj_data.get("audio_duration") or 0)
+            if server_duration > 0:
+                audio_duration = server_duration
+        except Exception:
+            pass
+
+    # Last-resort estimate: derive from total_frames
+    if audio_duration <= 0 and total_frames > 0 and fps > 0:
+        audio_duration = total_frames / fps
+
+    logger.warning(
+        "[render] project=%s mode=%s fps=%s total_frames=%s audio_duration=%.3f",
+        project_id, mode, fps, total_frames, audio_duration,
+    )
 
     output_dir = settings.output_path
     output_dir.mkdir(parents=True, exist_ok=True)
     output_file = output_dir / f"{project_id}.mp4"
 
+    # Duration arg: use explicit -t so the output always matches the audio length
+    # regardless of H.264 bitstream timestamps.  Falls back to -shortest only if
+    # we genuinely have no duration information (should not happen in practice).
+    duration_args = ["-t", str(audio_duration)] if audio_duration > 0 else ["-shortest"]
+
     if mode == "webcodecs":
-        # WebCodecs sends pre-encoded H.264 Annex B stream
-        # FFmpeg only needs to mux into MP4 — NO re-encoding of video, ultra-fast
+        # WebCodecs sends pre-encoded H.264 Annex B.
+        # Copying the stream with -c:v copy preserves WebCodecs GPU encoding quality,
+        # but the Annex B bitstream often has no SEI timing → FFmpeg assigns PTS=0
+        # for every frame → -shortest then cuts the whole video to ~0 s.
+        #
+        # Fix: decode the H.264 input and re-encode with libx264 so that FFmpeg
+        # generates monotonic PTS itself.  "ultrafast" keeps server CPU time low;
+        # the browser already did the heavy canvas work.
         ffmpeg_cmd = [
             "ffmpeg", "-y",
             "-f", "h264",
-            "-framerate", str(fps),
+            "-r", str(fps),          # tell the H.264 demuxer the framerate
             "-i", "pipe:0",
             "-i", str(audio_file),
             "-map", "0:v:0", "-map", "1:a:0",
-            "-c:v", "copy",  # just package H.264 stream, no re-encoding
+            "-c:v", "libx264", "-preset", "ultrafast", "-crf", "18",
             "-c:a", "aac", "-b:a", "320k", "-ar", "48000",
-            "-shortest",
+            "-pix_fmt", "yuv420p",
+            "-movflags", "+faststart",
+            *duration_args,
             str(output_file),
         ]
     else:
@@ -113,7 +152,9 @@ async def ws_render(websocket: WebSocket, project_id: str):
             "-map", "0:v:0", "-map", "1:a:0",
             "-c:v", "libx264", "-preset", "fast", "-crf", "18",
             "-c:a", "aac", "-b:a", "320k", "-ar", "48000",
-            "-pix_fmt", "yuv420p", "-shortest",
+            "-pix_fmt", "yuv420p",
+            "-movflags", "+faststart",
+            *duration_args,
             str(output_file),
         ]
 
@@ -166,8 +207,11 @@ async def ws_render(websocket: WebSocket, project_id: str):
     stderr_out = await asyncio.get_event_loop().run_in_executor(None, lambda: proc.stderr.read().decode())
     await asyncio.get_event_loop().run_in_executor(None, proc.wait)
 
+    # Always log FFmpeg output so we can diagnose issues
+    logger.warning("[ffmpeg] returncode=%d project=%s\n%s", proc.returncode, project_id, stderr_out[-2000:])
+
     if proc.returncode != 0:
-        await websocket.send_json({"type": "error", "message": f"FFmpeg failed: {stderr_out[-500:]}"})
+        await websocket.send_json({"type": "error", "message": f"FFmpeg failed: {stderr_out[-800:]}"})
         await websocket.close()
         return
 
