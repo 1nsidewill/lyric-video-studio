@@ -8,6 +8,10 @@
   <img src="src-tauri/icons/128x128@2x.png" width="128" alt="Lyric Video Studio" />
 </p>
 
+## 🎬 Demo / 미리보기
+
+https://github.com/user-attachments/assets/ab4e6e86-2beb-4767-b332-e23a5e704d62
+
 ---
 
 ## ⬇️ Download / 다운로드
