@@ -34,12 +34,13 @@ FFmpeg은 앱에 **내장**되어 있어 따로 설치할 필요가 없습니다
 
 **macOS**
 1. `.dmg` 열고 **Lyric Video Studio** 를 `Applications` 로 드래그
-2. 서명(공증)되지 않은 앱이라 처음 실행 시 차단될 수 있습니다. 아래 중 하나로 실행하세요:
-   - **우클릭(또는 Control-클릭) → 열기 → 열기**, 또는
-   - 터미널에서 quarantine 속성 제거:
-     ```bash
-     xattr -dr com.apple.quarantine "/Applications/Lyric Video Studio.app"
-     ```
+2. 서명(공증)되지 않은 앱이라, 처음 실행하면 **"'Lyric Video Studio'은(는) 손상되었기 때문에 열 수 없습니다"** 경고가 뜹니다. (손상된 게 아니라 브라우저 다운로드에 붙는 격리(quarantine) 속성 때문입니다.) 터미널에서 아래 한 줄로 해제하세요:
+   ```bash
+   /usr/bin/xattr -dr com.apple.quarantine "/Applications/Lyric Video Studio.app"
+   ```
+   그 뒤 앱을 다시 실행하면 정상적으로 열립니다.
+
+   > ⚠️ 반드시 **`/usr/bin/xattr`** 전체 경로로 실행하세요. Homebrew/pyenv 등이 설치한 다른 `xattr`가 PATH를 가리면 `option -r not recognized` 에러가 납니다.
 
 > 코드 서명 인증서 없이 배포하므로 위 경고가 나옵니다. 소스가 공개되어 있으니 직접 빌드해서 쓰셔도 됩니다(아래 [Build from source](#-build-from-source)).
 
