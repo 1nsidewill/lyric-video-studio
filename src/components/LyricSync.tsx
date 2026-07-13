@@ -7,6 +7,8 @@ import ScreenFlash from './ScreenFlash';
 import { getSingerColor } from '../utils/singerColors';
 import { parseSingerTags } from '../utils/parseSingerTags';
 import { loadProject, saveProject, projectMediaSrc } from '../lib/storage';
+import { springSoft } from '../lib/motion';
+import { IconPlay, IconPause, IconPencil, IconTrash, IconCheck } from './icons';
 import type { LyricLine, ProjectData } from '../types';
 
 interface Props {
@@ -348,36 +350,36 @@ export default function LyricSync({ projectId, onComplete }: Props) {
           <span className="text-[var(--color-text-muted)]">
             <span className="text-[var(--color-text-primary)]">{currentIdx}</span>/{lyrics.length} lines
           </span>
-          <span className="text-[var(--color-text-muted)]">{Math.round(progress)}% done</span>
+          <span className="text-[var(--color-text-muted)]">{Math.round(progress)}% 완료</span>
         </div>
         <div className="flex gap-3 text-xs text-[var(--color-text-muted)]">
           <span>
             <kbd className="px-1.5 py-0.5 rounded text-[10px] font-bold"
               style={{ background: 'rgba(255, 255, 255, 0.1)', color: 'var(--color-text-primary)', fontFamily: 'var(--font-mono)' }}>
-              SPACE</kbd> {isPlaying ? 'HIT' : 'PLAY'}
+              Space</kbd> {isPlaying ? '히트' : '재생'}
           </span>
           <span>
             <kbd className="px-1.5 py-0.5 rounded text-[10px] font-bold"
               style={{ background: 'rgba(255,255,255,0.05)', color: 'var(--color-text-secondary)', fontFamily: 'var(--font-mono)' }}>
-              ←</kbd> UNDO
+              ←</kbd> 되돌리기
           </span>
           <span>
             <kbd className="px-1.5 py-0.5 rounded text-[10px] font-bold"
               style={{ background: 'rgba(255,255,255,0.05)', color: 'var(--color-text-secondary)', fontFamily: 'var(--font-mono)' }}>
-              ESC</kbd> PAUSE
+              Esc</kbd> 정지
           </span>
           <span>
             <kbd className="px-1.5 py-0.5 rounded text-[10px] font-bold"
               style={{ background: 'rgba(255,255,255,0.05)', color: 'var(--color-text-secondary)', fontFamily: 'var(--font-mono)' }}>
-              TAB</kbd> SKIP
+              Tab</kbd> 건너뛰기
           </span>
-          <span className="text-[var(--color-text-muted)] opacity-50">· click line to seek</span>
+          <span className="text-[var(--color-text-muted)] opacity-50">· 클릭해서 이동</span>
         </div>
       </motion.div>
 
       {/* Lyric lines */}
-      <div ref={listRef} className="h-[50vh] overflow-y-auto space-y-0.5 rounded-2xl p-4 relative"
-        style={{ background: 'linear-gradient(180deg, var(--color-bg-card), rgba(26, 26, 26, 0.5))', border: '1px solid rgba(255,255,255,0.03)' }}>
+      <div ref={listRef} className="h-[50vh] overflow-y-auto space-y-0.5 rounded-2xl p-4 relative glass-strong"
+        style={{ border: '1px solid rgba(255,255,255,0.06)' }}>
         <AnimatePresence>
           {lyrics.map((line, i) => {
             const isCurrent = i === currentIdx;
@@ -459,22 +461,22 @@ export default function LyricSync({ projectId, onComplete }: Props) {
                   {editingIdx !== i && (
                     <div className="flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity">
                       <button onClick={(e) => { e.stopPropagation(); startEdit(i); }}
-                        className="w-5 h-5 rounded flex items-center justify-center text-[9px] hover:bg-white/10 transition-colors"
+                        className="w-6 h-6 rounded-md flex items-center justify-center hover:bg-white/10 transition-colors"
                         style={{ color: 'var(--color-text-muted)' }}
-                        title="Edit">✏️</button>
+                        title="편집"><IconPencil size={13} /></button>
                       <button onClick={(e) => { e.stopPropagation(); deleteLine(i); }}
-                        className="w-5 h-5 rounded flex items-center justify-center text-[9px] hover:bg-red-500/20 transition-colors"
+                        className="w-6 h-6 rounded-md flex items-center justify-center hover:bg-[rgba(244,63,94,0.18)] transition-colors"
                         style={{ color: 'var(--color-text-muted)' }}
-                        title="Delete">🗑</button>
+                        title="삭제"><IconTrash size={13} /></button>
                     </div>
                   )}
 
                   {/* Status */}
                   {isDone && editingIdx !== i && (
-                    <motion.div initial={{ scale: 0, rotate: -180 }} animate={{ scale: 1, rotate: 0 }}
-                      transition={{ type: 'spring', stiffness: 500, damping: 15 }}
-                      className="w-5 h-5 rounded-full flex items-center justify-center text-[10px] font-bold"
-                      style={{ background: 'rgba(255, 255, 255, 0.1)', color: 'var(--color-text-primary)' }}>✓</motion.div>
+                    <motion.div initial={{ scale: 0 }} animate={{ scale: 1 }}
+                      transition={{ type: 'spring', bounce: 0.35, duration: 0.4 }}
+                      className="w-5 h-5 rounded-full flex items-center justify-center"
+                      style={{ background: 'rgba(255, 255, 255, 0.12)', color: 'var(--color-text-primary)' }}><IconCheck size={12} /></motion.div>
                   )}
                   {isCurrent && isPlaying && editingIdx !== i && (
                     <motion.div animate={{ opacity: [0.3, 1, 0.3] }} transition={{ repeat: Infinity, duration: 1 }}
@@ -490,30 +492,31 @@ export default function LyricSync({ projectId, onComplete }: Props) {
 
       {/* Actions */}
       <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.3 }} className="flex gap-3 mt-6">
-        <motion.button whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.97 }} onClick={toggle}
-          className="flex-1 py-3.5 rounded-xl font-semibold text-sm tracking-wide transition-all"
-          style={{ fontFamily: 'var(--font-display)', background: 'var(--color-bg-card)', border: '1px solid rgba(255,255,255,0.06)', color: 'var(--color-text-primary)' }}>
-          {isPlaying ? '⏸ PAUSE' : '▶ PLAY'}
+        <motion.button whileTap={{ scale: 0.97 }} transition={springSoft} onClick={toggle}
+          className="flex-1 py-3.5 rounded-xl font-semibold text-sm flex items-center justify-center gap-2"
+          style={{ fontFamily: 'var(--font-display)', background: 'rgba(255,255,255,0.06)', color: 'var(--color-text-primary)' }}>
+          {isPlaying ? <><IconPause size={16} /> 일시정지</> : <><IconPlay size={16} /> 재생</>}
         </motion.button>
         <motion.button
-          whileHover={{ scale: 1.02 }}
-          whileTap={{ scale: 0.97 }}
+          whileTap={{ scale: 0.97 }} transition={springSoft}
           onClick={skipToPreview}
-          className="py-3.5 px-5 rounded-xl font-semibold text-sm tracking-wide transition-all"
-          style={{ fontFamily: 'var(--font-display)', background: 'var(--color-bg-card)', border: '1px solid rgba(255,255,255,0.08)', color: 'var(--color-text-primary)' }}>
-          SKIP → PREVIEW
+          className="py-3.5 px-5 rounded-xl font-semibold text-sm"
+          style={{ fontFamily: 'var(--font-display)', background: 'rgba(255,255,255,0.06)', color: 'var(--color-text-secondary)' }}>
+          건너뛰기
         </motion.button>
         <motion.button
-          whileHover={synced ? { scale: 1.02, boxShadow: '0 0 40px rgba(255, 255, 255, 0.15)' } : {}}
-          whileTap={synced ? { scale: 0.97 } : {}}
+          whileHover={synced ? { scale: 1.01, y: -1 } : {}}
+          whileTap={synced ? { scale: 0.98 } : {}}
+          transition={springSoft}
           onClick={saveAndProceed} disabled={!synced}
-          className="flex-1 py-3.5 rounded-xl font-bold text-sm tracking-wide transition-all disabled:opacity-20 disabled:cursor-not-allowed"
+          className="flex-1 py-3.5 rounded-xl font-semibold text-sm transition-colors disabled:opacity-25 disabled:cursor-not-allowed"
           style={{
             fontFamily: 'var(--font-display)',
-            background: synced ? '#ffffff' : 'var(--color-bg-card)',
+            background: synced ? '#ffffff' : 'rgba(255,255,255,0.05)',
             color: synced ? '#000' : 'var(--color-text-muted)',
+            boxShadow: synced ? '0 8px 30px rgba(255,255,255,0.12)' : 'none',
           }}>
-          COMPLETE → PREVIEW
+          완료 · 프리뷰로
         </motion.button>
       </motion.div>
     </motion.div>

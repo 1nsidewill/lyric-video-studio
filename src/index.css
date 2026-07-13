@@ -40,7 +40,15 @@ body {
   color: var(--color-text-primary);
   font-family: var(--font-body);
   overflow-x: hidden;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  font-optical-sizing: auto;
+  text-rendering: optimizeLegibility;
 }
+
+/* Apple-style typography: large display text reads tighter as it grows. */
+h1, h2 { letter-spacing: -0.021em; }
+h3 { letter-spacing: -0.011em; }
 
 ::-webkit-scrollbar { width: 4px; }
 ::-webkit-scrollbar-track { background: transparent; }
@@ -76,11 +84,38 @@ body {
 .spin-slow { animation: spin-slow 20s linear infinite; }
 
 .glass {
-  background: rgba(255, 255, 255, 0.04);
-  backdrop-filter: blur(20px);
+  background: rgba(255, 255, 255, 0.045);
+  backdrop-filter: blur(20px) saturate(160%);
+  -webkit-backdrop-filter: blur(20px) saturate(160%);
   border: 1px solid rgba(255, 255, 255, 0.08);
+  /* bright top edge = light catching the material (Apple) */
+  box-shadow: inset 0 1px 0 0 rgba(255, 255, 255, 0.06);
+  transition:
+    background 240ms cubic-bezier(0.22, 1, 0.36, 1),
+    border-color 240ms cubic-bezier(0.22, 1, 0.36, 1),
+    transform 240ms cubic-bezier(0.22, 1, 0.36, 1);
 }
 .glass-hover:hover {
-  background: rgba(255, 255, 255, 0.07);
-  border-color: rgba(255, 255, 255, 0.12);
+  background: rgba(255, 255, 255, 0.08);
+  border-color: rgba(255, 255, 255, 0.14);
+}
+
+/* Bigger surfaces read thicker: stronger blur + deeper shadow. */
+.glass-strong {
+  background: rgba(20, 20, 26, 0.55);
+  backdrop-filter: blur(40px) saturate(160%);
+  -webkit-backdrop-filter: blur(40px) saturate(160%);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  box-shadow: inset 0 1px 0 0 rgba(255, 255, 255, 0.07), 0 24px 70px rgba(0, 0, 0, 0.5);
+}
+
+@media (prefers-reduced-transparency: reduce) {
+  .glass, .glass-strong {
+    backdrop-filter: none;
+    -webkit-backdrop-filter: none;
+    background: rgba(20, 20, 26, 0.94);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .shimmer-text, .float, .spin-slow { animation: none; }
 }

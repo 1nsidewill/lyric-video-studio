@@ -6,15 +6,32 @@ export interface LyricLine {
   singer?: string;
 }
 
+export type AspectRatio = '16:9' | '9:16';
+
+export interface RenderOptions {
+  show_eq: boolean;
+  show_timeline: boolean;
+  aspect: AspectRatio;
+}
+
 export interface ProjectData {
   project_id: string;
   title: string;
   artist: string;
+  /** Optional album name (shown under the track/artist when present). */
+  album?: string;
   audio_filename: string;
   artwork_filename: string;
   lyrics: LyricLine[];
   audio_duration: number | null;
+  render_options?: RenderOptions;
 }
+
+export const DEFAULT_RENDER_OPTIONS: RenderOptions = {
+  show_eq: true,
+  show_timeline: true,
+  aspect: '16:9',
+};
 
 export type AppStep = 'upload' | 'sync' | 'preview' | 'generate';
 

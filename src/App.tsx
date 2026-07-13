@@ -4,6 +4,8 @@ import FileUpload from './components/FileUpload';
 import LyricSync from './components/LyricSync';
 import Preview from './components/Preview';
 import Generate from './components/Generate';
+import UpdateBanner from './components/UpdateBanner';
+import { IconCheck } from './components/icons';
 import type { AppStep } from './types';
 
 const STEPS: { key: AppStep; label: string; icon: string }[] = [
@@ -13,10 +15,12 @@ const STEPS: { key: AppStep; label: string; icon: string }[] = [
   { key: 'generate', label: '렌더', icon: '04' },
 ];
 
+// Apple-style page transition: compositor-friendly (opacity + transform only), a
+// critically-damped spring in, a quick ease out. No blur filter (heavy + un-Apple).
 const pageVariants = {
-  initial: { opacity: 0, y: 40, filter: 'blur(10px)' },
-  animate: { opacity: 1, y: 0, filter: 'blur(0px)', transition: { duration: 0.5, ease: 'circOut' as const } },
-  exit: { opacity: 0, y: -30, filter: 'blur(8px)', transition: { duration: 0.3 } },
+  initial: { opacity: 0, y: 22 },
+  animate: { opacity: 1, y: 0, transition: { type: 'spring' as const, bounce: 0, duration: 0.5 } },
+  exit: { opacity: 0, y: -14, transition: { duration: 0.22, ease: [0.4, 0, 1, 1] as [number, number, number, number] } },
 };
 
 export default function App() {
@@ -48,9 +52,14 @@ export default function App() {
         </div>
       )}
 
-      {/* Nav */}
-      <nav className="relative z-30 border-b border-white/[0.04]"
-        style={{ background: 'rgba(6, 6, 12, 0.8)', backdropFilter: 'blur(20px)' }}>
+      {/* Nav — translucent material with a soft scroll-edge (no hard divider) */}
+      <nav className="relative z-30"
+        style={{
+          background: 'rgba(8, 8, 14, 0.6)',
+          backdropFilter: 'blur(24px) saturate(160%)',
+          WebkitBackdropFilter: 'blur(24px) saturate(160%)',
+          boxShadow: '0 1px 0 0 rgba(255,255,255,0.05), 0 10px 30px rgba(0,0,0,0.25)',
+        }}>
         <div className="max-w-6xl mx-auto flex items-center justify-between py-4 px-6">
           <motion.div className="flex items-center gap-2.5 cursor-pointer"
             onClick={() => navigateTo('upload')}
@@ -79,8 +88,8 @@ export default function App() {
                   <div onClick={() => isClickable && navigateTo(s.key)}
                     className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium transition-all duration-300 ${isClickable ? 'cursor-pointer hover:bg-white/[0.04]' : ''} ${isActive ? 'text-white' : isDone ? 'text-white/60' : 'text-[var(--color-text-muted)]'}`}
                     style={isActive ? { background: 'rgba(255,255,255,0.1)', border: '1px solid rgba(255,255,255,0.2)' } : { border: '1px solid transparent' }}>
-                    <span className="font-mono text-[10px] opacity-50" style={{ fontFamily: 'var(--font-mono)' }}>
-                      {isDone ? '✓' : s.icon}
+                    <span className="text-[10px] opacity-60 flex items-center" style={{ fontFamily: 'var(--font-mono)' }}>
+                      {isDone ? <IconCheck size={11} /> : s.icon}
                     </span>
                     <span style={{ fontFamily: 'var(--font-display)' }}>{s.label}</span>
                   </div>
@@ -113,6 +122,8 @@ export default function App() {
           </motion.div>
         </AnimatePresence>
       </main>
+
+      <UpdateBanner />
     </div>
   );
 }

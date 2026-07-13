@@ -17,6 +17,8 @@ import { parseSingerTags } from '../utils/parseSingerTags';
 import { resetSingerColors, getSingerColor } from '../utils/singerColors';
 import { drawLyricFrame, createRenderState } from '../utils/canvasRenderer';
 import { getDominantColor } from '../utils/colorUtils';
+import { getSpectrogram, sampleBands, type Spectrogram } from './spectrogram';
+import { DEFAULT_RENDER_OPTIONS, type RenderOptions as ProjectRenderOptions } from '../types';
 
 export type RenderStage = 'preparing' | 'encoding' | 'finalizing';
 
@@ -28,9 +30,6 @@ export interface RenderOptions {
   onStage?: (stage: RenderStage) => void;
   isCancelled?: () => boolean;
 }
-
-const W = 1920;
-const H = 1080;
 
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
 
@@ -93,6 +92,13 @@ export async function renderProject(opts: RenderOptions): Promise<void> {
   const duration = await probeDuration(convertFileSrc(audioPath), project.audio_duration ?? 0);
   if (duration < 1) throw new Error('오디오 길이를 불러올 수 없습니다. 다시 시도해주세요.');
 
+  // Reactive-EQ spectrogram (cached from the preview step) + persisted style options.
+  const spec = await getSpectrogram(projectId, audioPath).catch(() => null);
+  const ropts = project.render_options ?? DEFAULT_RENDER_OPTIONS;
+  const portrait = ropts.aspect === '9:16';
+  const W = portrait ? 1080 : 1920;
+  const H = portrait ? 1920 : 1080;
+
   const canvas = document.createElement('canvas');
   canvas.width = W;
   canvas.height = H;
@@ -119,9 +125,9 @@ export async function renderProject(opts: RenderOptions): Promise<void> {
   }
 
   if (useWebCodecs) {
-    await renderWebCodecs(canvas, img, renderData, accent, duration, audioPath, outputPath, encoderConfig, onProgress, onStage, cancelled);
+    await renderWebCodecs(canvas, img, renderData, accent, duration, audioPath, outputPath, encoderConfig, spec, ropts, onProgress, onStage, cancelled);
   } else {
-    await renderFallback(canvas, img, renderData, accent, duration, audioPath, outputPath, onProgress, onStage, cancelled);
+    await renderFallback(canvas, img, renderData, accent, duration, audioPath, outputPath, spec, ropts, onProgress, onStage, cancelled);
   }
 }
 
@@ -137,12 +143,15 @@ async function renderWebCodecs(
   outputPath: string,
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   encoderConfig: any,
+  spec: Spectrogram | null,
+  ropts: ProjectRenderOptions,
   onProgress?: (f: number) => void,
   onStage?: (s: RenderStage) => void,
   cancelled?: () => boolean,
 ): Promise<void> {
   const fps = 60;
   const totalFrames = Math.ceil(duration * fps);
+  const bands = spec ? new Float32Array(spec.numBands) : null;
   const h264Path = await join(await tempDir(), `lvs-${crypto.randomUUID()}.h264`);
   const fh = await open(h264Path, { write: true, create: true, truncate: true });
 
@@ -172,7 +181,8 @@ async function renderWebCodecs(
     for (let f = 0; f < totalFrames; f++) {
       if (cancelled?.() || encodeError) break;
       const t = f / fps;
-      drawLyricFrame(ctx, img, renderData, t, accent, state);
+      if (spec && bands) sampleBands(spec, t, bands);
+      drawLyricFrame(ctx, img, renderData, t, accent, state, { bands, showEq: ropts.show_eq, showTimeline: ropts.show_timeline, duration });
 
       while (encoder.encodeQueueSize > 60) await sleep(5);
       if (pending.length > 120) await drain();
@@ -216,12 +226,15 @@ async function renderFallback(
   duration: number,
   audioPath: string,
   outputPath: string,
+  spec: Spectrogram | null,
+  ropts: ProjectRenderOptions,
   onProgress?: (f: number) => void,
   onStage?: (s: RenderStage) => void,
   cancelled?: () => boolean,
 ): Promise<void> {
   const fps = 30;
   const totalFrames = Math.ceil(duration * fps);
+  const bands = spec ? new Float32Array(spec.numBands) : null;
   const framesDir = await join(await tempDir(), `lvs-frames-${crypto.randomUUID()}`);
   await mkdir(framesDir, { recursive: true });
 
@@ -235,7 +248,8 @@ async function renderFallback(
         return;
       }
       const t = f / fps;
-      drawLyricFrame(ctx, img, renderData, t, accent, state);
+      if (spec && bands) sampleBands(spec, t, bands);
+      drawLyricFrame(ctx, img, renderData, t, accent, state, { bands, showEq: ropts.show_eq, showTimeline: ropts.show_timeline, duration });
       const blob = await new Promise<Blob | null>((r) => canvas.toBlob(r, 'image/jpeg', 0.92));
       if (!blob) throw new Error('프레임 인코딩 실패');
       const name = `f${String(f).padStart(6, '0')}.jpg`;

@@ -1,7 +1,7 @@
 {
   "$schema": "../node_modules/@tauri-apps/cli/config.schema.json",
   "productName": "Lyric Video Studio",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "identifier": "com.insidewill.lyricvideostudio",
   "build": {
     "frontendDist": "../dist",
@@ -33,6 +33,7 @@
   },
   "bundle": {
     "active": true,
+    "createUpdaterArtifacts": true,
     "targets": "all",
     "category": "Video",
     "copyright": "© insidewill · MIT License",
@@ -53,6 +54,14 @@
       "nsis": {
         "installMode": "currentUser"
       }
+    }
+  },
+  "plugins": {
+    "updater": {
+      "endpoints": [
+        "https://github.com/1nsidewill/lyric-video-studio/releases/latest/download/latest.json"
+      ],
+      "pubkey": "dW50cnVzdGVkIGNvbW1lbnQ6IG1pbmlzaWduIHB1YmxpYyBrZXk6IDgxNUY0NzdDQTFEODBBNzkKUldSNUN0aWhmRWRmZ1lGbklrZ2hQanRVZ1pvUE5rY0k2ZG5zU01MTDFxbzJXNFZPRkJQYTk1cEYK"
     }
   }
 }

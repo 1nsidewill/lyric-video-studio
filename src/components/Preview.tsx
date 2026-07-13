@@ -4,8 +4,11 @@ import { useAudioPlayer } from '../hooks/useAudioPlayer';
 import { parseSingerTags } from '../utils/parseSingerTags';
 import { drawLyricFrame, createRenderState } from '../utils/canvasRenderer';
 import { getDominantColor } from '../utils/colorUtils';
-import { loadProject, projectMediaSrc } from '../lib/storage';
-import type { ProjectData } from '../types';
+import { loadProject, saveProject, projectMediaSrc, projectFilePath } from '../lib/storage';
+import { getSpectrogram, sampleBands, type Spectrogram } from '../lib/spectrogram';
+import { springSoft } from '../lib/motion';
+import { IconPlay, IconArrowLeft, IconFilm, IconWave, IconTimeline } from './icons';
+import { DEFAULT_RENDER_OPTIONS, type ProjectData, type AspectRatio, type RenderOptions } from '../types';
 
 interface Props {
   projectId: string;
@@ -27,9 +30,24 @@ export default function Preview({ projectId, onGenerate, onBack }: Props) {
   const timelineRef = useRef<HTMLDivElement>(null);
   const [isDragging, setIsDragging] = useState(false);
   const renderStateRef = useRef(createRenderState());
+  const specRef = useRef<Spectrogram | null>(null);
+  const bandsRef = useRef<Float32Array | null>(null);
   const [audioSrc, setAudioSrc] = useState<string | null>(null);
   const [artworkSrc, setArtworkSrc] = useState<string>('');
+  const [showEq, setShowEq] = useState(DEFAULT_RENDER_OPTIONS.show_eq);
+  const [showTimeline, setShowTimeline] = useState(DEFAULT_RENDER_OPTIONS.show_timeline);
+  const [aspect, setAspect] = useState<AspectRatio>(DEFAULT_RENDER_OPTIONS.aspect);
   const { isPlaying, currentTime, duration, toggle, seek } = useAudioPlayer(audioSrc);
+
+  const persistOptions = useCallback(async (opts: RenderOptions) => {
+    try {
+      const full = await loadProject(projectId); // full lyrics — don't persist the filtered copy
+      await saveProject({ ...full, render_options: opts });
+    } catch { /* best-effort */ }
+  }, [projectId]);
+  const toggleEq = () => { const v = !showEq; setShowEq(v); persistOptions({ show_eq: v, show_timeline: showTimeline, aspect }); };
+  const toggleTimeline = () => { const v = !showTimeline; setShowTimeline(v); persistOptions({ show_eq: showEq, show_timeline: v, aspect }); };
+  const chooseAspect = (a: AspectRatio) => { setAspect(a); persistOptions({ show_eq: showEq, show_timeline: showTimeline, aspect: a }); };
 
   useEffect(() => {
     let alive = true;
@@ -38,8 +56,14 @@ export default function Preview({ projectId, onGenerate, onBack }: Props) {
       if (!alive) return;
       const parsed = parseSingerTags(data.lyrics).filter((l: { start_time: number }) => l.start_time > 0);
       setProject({ ...data, lyrics: parsed });
+      setShowEq(data.render_options?.show_eq ?? DEFAULT_RENDER_OPTIONS.show_eq);
+      setShowTimeline(data.render_options?.show_timeline ?? DEFAULT_RENDER_OPTIONS.show_timeline);
+      setAspect(data.render_options?.aspect ?? DEFAULT_RENDER_OPTIONS.aspect);
       setArtworkSrc(await projectMediaSrc(projectId, data.artwork_filename));
       setAudioSrc(await projectMediaSrc(projectId, data.audio_filename));
+      // Reactive-EQ spectrogram (computed once, cached by project id)
+      const audioPath = await projectFilePath(projectId, data.audio_filename);
+      getSpectrogram(projectId, audioPath).then((s) => { if (alive) specRef.current = s; }).catch(() => {});
     })();
     return () => { alive = false; };
   }, [projectId]);
@@ -57,8 +81,17 @@ export default function Preview({ projectId, onGenerate, onBack }: Props) {
     if (!canvas || !project || !artworkImg) return;
     const ctx = canvas.getContext('2d');
     if (!ctx) return;
-    drawLyricFrame(ctx, artworkImg, project, currentTime, accentColor, renderStateRef.current);
-  }, [project, artworkImg, currentTime, accentColor]);
+    let bands: Float32Array | null = null;
+    const spec = specRef.current;
+    if (spec) {
+      if (!bandsRef.current || bandsRef.current.length !== spec.numBands) bandsRef.current = new Float32Array(spec.numBands);
+      sampleBands(spec, currentTime, bandsRef.current);
+      bands = bandsRef.current;
+    }
+    drawLyricFrame(ctx, artworkImg, project, currentTime, accentColor, renderStateRef.current, {
+      bands, showEq, showTimeline, duration,
+    });
+  }, [project, artworkImg, currentTime, accentColor, showEq, showTimeline, duration]);
 
   useEffect(() => {
     let rafId: number;
@@ -98,25 +131,33 @@ export default function Preview({ projectId, onGenerate, onBack }: Props) {
 
   return (
     <div className="max-w-5xl mx-auto">
-      <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="text-center mb-6">
-        <h2 className="text-2xl font-bold tracking-tight" style={{ fontFamily: 'var(--font-display)' }}>PREVIEW</h2>
-        <p className="text-xs text-[var(--color-text-primary)] mt-1 tracking-wide" style={{ fontFamily: 'var(--font-mono)' }}>
-          SPACE play/pause · ← → skip 5s · drag timeline to seek
+      <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={springSoft} className="text-center mb-6">
+        <h2 className="text-2xl font-bold tracking-tight" style={{ fontFamily: 'var(--font-display)' }}>Preview</h2>
+        <p className="text-xs mt-1.5" style={{ color: 'var(--color-text-muted)' }}>
+          Space 재생/정지 · ← → 5초 이동 · 타임라인 드래그로 탐색
         </p>
       </motion.div>
 
       <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }}
         transition={{ type: 'spring', stiffness: 200, damping: 20 }}
-        className="relative rounded-2xl overflow-hidden"
-        style={{ boxShadow: '0 20px 60px rgba(0,0,0,0.5)', border: '1px solid rgba(255,255,255,0.1)' }}>
-        <canvas ref={canvasRef} width={1280} height={720} className="w-full aspect-video bg-black" />
+        className="relative rounded-2xl overflow-hidden mx-auto"
+        style={{
+          boxShadow: '0 20px 60px rgba(0,0,0,0.5)',
+          border: '1px solid rgba(255,255,255,0.1)',
+          aspectRatio: aspect === '9:16' ? '9 / 16' : '16 / 9',
+          ...(aspect === '9:16' ? { height: '66vh', width: 'auto' } : { width: '100%' }),
+        }}>
+        <canvas ref={canvasRef}
+          width={aspect === '9:16' ? 720 : 1280}
+          height={aspect === '9:16' ? 1280 : 720}
+          className="w-full h-full bg-black" />
 
         <button onClick={toggle} className="absolute inset-0 flex items-center justify-center bg-transparent hover:bg-black/10 transition-colors">
           {!isPlaying && (
-            <motion.div initial={{ scale: 0 }} animate={{ scale: 1 }} transition={{ type: 'spring', stiffness: 400 }}
-              className="w-16 h-16 rounded-full flex items-center justify-center backdrop-blur-md"
-              style={{ background: 'rgba(255, 255, 255, 0.9)', boxShadow: '0 0 40px rgba(255, 255, 255, 0.4)' }}>
-              <span className="text-xl ml-1" style={{ color: '#000' }}>▶</span>
+            <motion.div initial={{ scale: 0.8, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} transition={springSoft}
+              className="w-16 h-16 rounded-full flex items-center justify-center"
+              style={{ background: 'rgba(255, 255, 255, 0.92)', boxShadow: '0 8px 40px rgba(0,0,0,0.35)', color: '#000' }}>
+              <IconPlay size={26} />
             </motion.div>
           )}
         </button>
@@ -137,18 +178,46 @@ export default function Preview({ projectId, onGenerate, onBack }: Props) {
         <span>{formatTime(duration)}</span>
       </div>
 
+      {/* Style options — reflected live in the preview and baked into the render */}
+      <div className="flex items-center justify-center gap-2 mt-4">
+        {([['EQ', <IconWave size={13} />, showEq, toggleEq], ['타임라인', <IconTimeline size={13} />, showTimeline, toggleTimeline]] as const).map(([label, icon, active, onClick]) => (
+          <motion.button key={label} whileTap={{ scale: 0.95 }} onClick={onClick} transition={springSoft}
+            className="px-3.5 py-1.5 rounded-full text-xs font-semibold flex items-center gap-1.5 transition-colors"
+            style={{
+              fontFamily: 'var(--font-display)',
+              background: active ? 'rgba(255,255,255,0.92)' : 'var(--color-bg-card)',
+              color: active ? '#000' : 'var(--color-text-muted)',
+              border: '1px solid rgba(255,255,255,0.1)',
+            }}>
+            {icon} {label}
+          </motion.button>
+        ))}
+        <span className="w-px h-4 mx-1" style={{ background: 'rgba(255,255,255,0.12)' }} />
+        {(['16:9', '9:16'] as const).map((a) => (
+          <motion.button key={a} whileTap={{ scale: 0.95 }} onClick={() => chooseAspect(a)}
+            className="px-3.5 py-1.5 rounded-full text-xs font-semibold transition-colors"
+            style={{
+              fontFamily: 'var(--font-display)',
+              background: aspect === a ? 'rgba(255,255,255,0.92)' : 'var(--color-bg-card)',
+              color: aspect === a ? '#000' : 'var(--color-text-muted)',
+              border: '1px solid rgba(255,255,255,0.1)',
+            }}>
+            {a === '9:16' ? '9:16 릴스' : '16:9'}
+          </motion.button>
+        ))}
+      </div>
+
       <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }} className="flex gap-3 mt-4">
-        <motion.button whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.97 }} onClick={onBack}
-          className="flex-1 py-3.5 rounded-xl font-semibold text-sm tracking-wide"
-          style={{ fontFamily: 'var(--font-display)', background: 'var(--color-bg-card)', border: '1px solid rgba(255,255,255,0.06)', color: 'var(--color-text-primary)' }}>
-          ← BACK TO SYNC
+        <motion.button whileTap={{ scale: 0.98 }} transition={springSoft} onClick={onBack}
+          className="flex-1 py-3.5 rounded-xl font-semibold text-sm flex items-center justify-center gap-1.5"
+          style={{ fontFamily: 'var(--font-display)', background: 'rgba(255,255,255,0.06)', color: 'var(--color-text-secondary)' }}>
+          <IconArrowLeft size={16} /> 싱크로
         </motion.button>
         <motion.button
-          whileHover={{ scale: 1.02, boxShadow: '0 0 40px rgba(255, 255, 255, 0.1)' }}
-          whileTap={{ scale: 0.97 }} onClick={onGenerate}
-          className="flex-1 py-3.5 rounded-xl font-bold text-sm tracking-wide"
-          style={{ fontFamily: 'var(--font-display)', background: '#ffffff', color: '#000000' }}>
-          RENDER VIDEO →
+          whileHover={{ scale: 1.01, y: -1 }} whileTap={{ scale: 0.98 }} transition={springSoft} onClick={onGenerate}
+          className="flex-1 py-3.5 rounded-xl font-semibold text-sm flex items-center justify-center gap-2"
+          style={{ fontFamily: 'var(--font-display)', background: '#ffffff', color: '#000000', boxShadow: '0 8px 30px rgba(255,255,255,0.12)' }}>
+          <IconFilm size={17} /> 렌더로
         </motion.button>
       </motion.div>
     </div>

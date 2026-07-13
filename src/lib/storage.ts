@@ -43,6 +43,7 @@ export interface MediaInput {
 export interface NewProjectInput {
   title: string;
   artist: string;
+  album?: string;
   lyrics: LyricLine[];
   audio: MediaInput;
   artwork: MediaInput;
@@ -64,6 +65,7 @@ export async function createProject(input: NewProjectInput): Promise<string> {
     project_id: id,
     title: input.title || 'Untitled',
     artist: input.artist || 'Unknown',
+    album: input.album?.trim() || undefined,
     audio_filename: audioName,
     artwork_filename: artworkName,
     lyrics: input.lyrics,
