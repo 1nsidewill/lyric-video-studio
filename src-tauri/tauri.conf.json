@@ -1,0 +1,58 @@
+{
+  "$schema": "../node_modules/@tauri-apps/cli/config.schema.json",
+  "productName": "Lyric Video Studio",
+  "version": "0.2.0",
+  "identifier": "com.insidewill.lyricvideostudio",
+  "build": {
+    "frontendDist": "../dist",
+    "devUrl": "http://localhost:5173",
+    "beforeDevCommand": "npm run dev",
+    "beforeBuildCommand": "npm run build"
+  },
+  "app": {
+    "windows": [
+      {
+        "title": "Lyric Video Studio",
+        "width": 1280,
+        "height": 860,
+        "minWidth": 1000,
+        "minHeight": 700,
+        "resizable": true,
+        "fullscreen": false,
+        "dragDropEnabled": false,
+        "center": true
+      }
+    ],
+    "security": {
+      "csp": null,
+      "assetProtocol": {
+        "enable": true,
+        "scope": ["$APPLOCALDATA/**", "$TEMP/**"]
+      }
+    }
+  },
+  "bundle": {
+    "active": true,
+    "targets": "all",
+    "category": "Video",
+    "copyright": "© insidewill · MIT License",
+    "shortDescription": "Turn album art, audio, and lyrics into a 1080p60 lyric video — 100% offline.",
+    "longDescription": "Lyric Video Studio is an offline desktop app that renders YouTube-ready 1080p60 MP4 lyric videos from your album art, audio, and lyrics. All rendering runs locally on your machine (GPU H.264 encoding via WebCodecs where available, bundled FFmpeg for muxing) — no login, no upload, no server.",
+    "icon": [
+      "icons/32x32.png",
+      "icons/128x128.png",
+      "icons/128x128@2x.png",
+      "icons/icon.icns",
+      "icons/icon.ico"
+    ],
+    "externalBin": ["binaries/ffmpeg"],
+    "macOS": {
+      "minimumSystemVersion": "10.15"
+    },
+    "windows": {
+      "nsis": {
+        "installMode": "currentUser"
+      }
+    }
+  }
+}
