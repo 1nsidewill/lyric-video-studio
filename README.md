@@ -22,9 +22,8 @@ https://github.com/user-attachments/assets/ab4e6e86-2beb-4767-b332-e23a5e704d62
 |---|---|---|
 | **Windows 10/11** | `Lyric Video Studio_x.y.z_x64-setup.exe` (NSIS) 또는 `..._x64_en-US.msi` | WebView2 자동 설치 |
 | **macOS (Apple Silicon · M1~)** | `Lyric Video Studio_x.y.z_aarch64.dmg` | |
-| **macOS (Intel)** | `Lyric Video Studio_x.y.z_x64.dmg` | |
 
-FFmpeg은 앱에 **내장**되어 있어 따로 설치할 필요가 없습니다.
+FFmpeg은 앱에 **내장**되어 있어 따로 설치할 필요가 없습니다. 처음 한 번만 수동으로 설치하면, 이후 새 버전은 **앱 안에서 자동 업데이트**됩니다.
 
 ### 설치 방법
 
