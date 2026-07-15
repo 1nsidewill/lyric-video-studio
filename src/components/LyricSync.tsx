@@ -254,19 +254,19 @@ export default function LyricSync({ projectId, onComplete }: Props) {
     restart();
   }, [restart]);
 
-  // Click a lyric line → seek to it and park the cursor there, WITHOUT touching any other
-  // line's timestamp. Press Space to re-stamp just this line at the current playhead; keep
-  // pressing to overwrite the following lines from here.
+  // Click a lyric line → MOVE only: seek a short run-up before the line and park the
+  // cursor there. The click never touches timestamps or playback state — the time is
+  // committed only when you press Space (while playing).
+  const RUN_UP_SEC = 1.2;
   const handleLineClick = useCallback((idx: number) => {
     if (editingIdx !== null) return; // don't seek out from under an open editor
     const line = lyrics[idx];
-    const seekTo = line.start_time > 0
+    const base = line.start_time > 0
       ? line.start_time
       : (idx > 0 && lyrics[idx - 1].start_time > 0 ? lyrics[idx - 1].start_time : 0);
-    seek(seekTo);
+    seek(Math.max(0, base - RUN_UP_SEC));
     setCurrentIdx(idx);
-    play();
-  }, [lyrics, seek, play, editingIdx]);
+  }, [lyrics, seek, editingIdx]);
 
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {

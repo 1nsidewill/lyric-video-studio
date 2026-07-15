@@ -13,10 +13,10 @@
 </p>
 
 <p align="center">
-  <a href="https://github.com/1nsidewill/lyric-video-studio/releases/latest"><img src="https://img.shields.io/github/v/release/1nsidewill/lyric-video-studio?display_name=tag&style=flat-square&color=white&labelColor=111" alt="release"/></a>
+  <a href="https://github.com/1nsidewill/the-rest/releases/latest"><img src="https://img.shields.io/github/v/release/1nsidewill/the-rest?display_name=tag&style=flat-square&color=white&labelColor=111" alt="release"/></a>
   <img src="https://img.shields.io/badge/platform-macOS%20%C2%B7%20Windows-white?style=flat-square&labelColor=111" alt="platforms"/>
   <img src="https://img.shields.io/badge/local--first-no%20server%20%C2%B7%20no%20login-white?style=flat-square&labelColor=111" alt="local-first"/>
-  <img src="https://img.shields.io/github/license/1nsidewill/lyric-video-studio?style=flat-square&color=white&labelColor=111" alt="license"/>
+  <img src="https://img.shields.io/github/license/1nsidewill/the-rest?style=flat-square&color=white&labelColor=111" alt="license"/>
 </p>
 
 ---
@@ -38,7 +38,7 @@ https://github.com/user-attachments/assets/ab4e6e86-2beb-4767-b332-e23a5e704d62
 
 ### 다운로드
 
-최신 설치 파일: **[Releases](https://github.com/1nsidewill/lyric-video-studio/releases/latest)**
+최신 설치 파일: **[Releases](https://github.com/1nsidewill/the-rest/releases/latest)**
 
 | OS | 파일 |
 |---|---|
@@ -73,7 +73,7 @@ https://github.com/user-attachments/assets/ab4e6e86-2beb-4767-b332-e23a5e704d62
 (WAV·MP3·FLAC)     타임스탬프 히트        EQ·타임라인 토글      1080p60 MP4
 ```
 
-- **싱크**: `Space` 히트 · `←` 되돌리기 · `Tab` 건너뛰기 · 줄 클릭 = 그 줄만 재조정 · 더블클릭 = 가사 수정 · **가사 편집**으로 빠진 줄을 넣어도 기존 싱크는 유지
+- **싱크**: `Space` 히트 · `←` 되돌리기 · `Tab` 건너뛰기 · 줄 클릭 = 그 줄로 이동만(런업 포함, `Space`로만 기록) · 더블클릭 = 가사 수정 · **가사 편집**으로 빠진 줄을 넣어도 기존 싱크는 유지
 - **멀티 싱어**: 가사에 `[이름]` 줄을 넣으면 파트별 색상 자동 배정
 - **스타일**: 앨범 dominant 컬러 → 앰비언트 배경 + EQ 색 자동 추출 · EQ/타임라인 토글 · 16:9 & 9:16
 - **출력**: 1920×1080(또는 1080×1920) · 60fps · H.264 · **원본 음질 오디오** · YouTube 설명란 자동 생성(크레딧 포함)
@@ -93,8 +93,8 @@ type beat 캡션의 관례(`"[FREE] Drake Type Beat | 140 BPM | F# minor"`, `[Am
 
 ```bash
 # 요구사항: Node 20+, Rust (stable), npm
-git clone https://github.com/1nsidewill/lyric-video-studio.git
-cd lyric-video-studio
+git clone https://github.com/1nsidewill/the-rest.git
+cd the-rest
 npm install
 npm run fetch-ffmpeg   # ffmpeg sidecar 준비 (ffmpeg-static)
 npm run desktop        # 개발 모드 (네이티브 창)
@@ -120,7 +120,7 @@ npm run desktop:build  # 배포 번들 (macOS는 CI=true 필요할 수 있음)
 
 ### Download
 
-Latest installers: **[Releases](https://github.com/1nsidewill/lyric-video-studio/releases/latest)**
+Latest installers: **[Releases](https://github.com/1nsidewill/the-rest/releases/latest)**
 
 | OS | File |
 |---|---|
@@ -147,7 +147,7 @@ Latest installers: **[Releases](https://github.com/1nsidewill/lyric-video-studio
 
 `① Upload (WAV·MP3·FLAC + PNG·JPG·GIF + lyrics)` → `② Sync (hit Space to the beat)` → `③ Preview (live canvas, EQ/timeline toggles, 16:9/9:16)` → `④ Render (GPU H.264 + bundled FFmpeg)`
 
-- **Sync**: `Space` hit · `←` undo · `Tab` skip · click a line to re-adjust just that line · double-click to edit its text · the **Edit lyrics** modal lets you add missing lines while keeping existing timings
+- **Sync**: `Space` hit · `←` undo · `Tab` skip · click a line to move there (with a run-up — only `Space` stamps) · double-click to edit its text · the **Edit lyrics** modal lets you add missing lines while keeping existing timings
 - **Multi-singer**: `[Name]` lines split parts with per-singer colors
 - **Output**: 1920×1080 (or 1080×1920) · 60fps · H.264 · source-quality audio · auto-generated YouTube description with credits
 

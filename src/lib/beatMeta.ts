@@ -70,6 +70,13 @@ export function parseKey(rawText: string): string | null {
   const full = text.match(new RegExp(String.raw`\b(${NOTE})\s+(major|minor)\b`, 'i'));
   if (full) return normalizeKey(full[1], full[2]);
 
+  // 3.5) Attached / hyphenated quality: "Amin", "Gmaj", "F#min", "A-minor", "Db-maj".
+  //      Gated on musical context so names like "Amin" in prose don't false-positive.
+  if (/\d{2,3}\s*bpm\b/i.test(text) || /\b(?:beat|instrumental|prod|key|tempo)\b/i.test(text)) {
+    const attached = text.match(new RegExp(String.raw`\b(${NOTE})-?(maj(?:or)?|min(?:or)?)\b`, 'i'));
+    if (attached) return normalizeKey(attached[1], attached[2]);
+  }
+
   // 4) Compact "F#m" / "Ebm" — an accidental makes it unambiguous.
   const acc = text.match(/\b([A-G](?:#|♯|b|♭))m\b/);
   if (acc) return normalizeKey(acc[1], 'm');
