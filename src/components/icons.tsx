@@ -90,6 +90,15 @@ export const IconDownload = (p: IconProps) => (
 export const IconGlobe = (p: IconProps) => (
   <Icon {...p}><circle cx="12" cy="12" r="8.5" /><path d="M3.5 12h17M12 3.5c2.6 2.3 3.9 5.2 3.9 8.5s-1.3 6.2-3.9 8.5c-2.6-2.3-3.9-5.2-3.9-8.5s1.3-6.2 3.9-8.5Z" /></Icon>
 );
+export const IconMic = (p: IconProps) => (
+  <Icon {...p}><rect x="9" y="3" width="6" height="11" rx="3" /><path d="M5.5 11.5a6.5 6.5 0 0 0 13 0M12 18v3M8.5 21h7" /></Icon>
+);
+export const IconRecord = (p: IconProps) => (
+  <Icon {...p}><circle cx="12" cy="12" r="6.5" fill="currentColor" stroke="none" /></Icon>
+);
+export const IconStop = (p: IconProps) => (
+  <Icon {...p}><rect x="6.5" y="6.5" width="11" height="11" rx="2" fill="currentColor" stroke="none" /></Icon>
+);
 export const IconLink = (p: IconProps) => (
   <Icon {...p}><path d="M10 14a4.5 4.5 0 0 0 6.4.4l2.3-2.3a4.5 4.5 0 0 0-6.4-6.4l-1.2 1.2" /><path d="M14 10a4.5 4.5 0 0 0-6.4-.4l-2.3 2.3a4.5 4.5 0 0 0 6.4 6.4l1.2-1.2" /></Icon>
 );

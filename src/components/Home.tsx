@@ -1,10 +1,11 @@
 import { motion } from 'framer-motion';
 import { springSoft } from '../lib/motion';
 import { useI18n } from '../lib/i18n';
-import { IconDownload, IconFilm, IconArrowRight } from './icons';
+import { IconDownload, IconFilm, IconMic, IconArrowRight } from './icons';
 
 interface Props {
   onOpenDownloader: () => void;
+  onOpenSketch: () => void;
   onOpenStudio: () => void;
 }
 
@@ -13,10 +14,11 @@ const fadeUp = {
   animate: { opacity: 1, y: 0, transition: { duration: 0.5, ease: [0.22, 1, 0.36, 1] as [number, number, number, number] } },
 };
 
-export default function Home({ onOpenDownloader, onOpenStudio }: Props) {
+export default function Home({ onOpenDownloader, onOpenSketch, onOpenStudio }: Props) {
   const { t } = useI18n();
   const cards = [
     { icon: <IconDownload size={24} />, title: t('home.downloader.title'), desc: t('home.downloader.desc'), onClick: onOpenDownloader },
+    { icon: <IconMic size={24} />, title: t('home.sketch.title'), desc: t('home.sketch.desc'), onClick: onOpenSketch },
     { icon: <IconFilm size={24} />, title: t('home.studio.title'), desc: t('home.studio.desc'), onClick: onOpenStudio },
   ];
 
@@ -28,7 +30,7 @@ export default function Home({ onOpenDownloader, onOpenStudio }: Props) {
           style={{ background: 'radial-gradient(circle, #ffffff, transparent 65%)' }} />
       </div>
 
-      <motion.div initial="initial" animate="animate" transition={{ staggerChildren: 0.07 }} className="relative z-10 w-full max-w-3xl">
+      <motion.div initial="initial" animate="animate" transition={{ staggerChildren: 0.07 }} className="relative z-10 w-full max-w-4xl">
         <motion.div variants={fadeUp} className="text-center mb-12">
           <h1 className="text-[4rem] leading-none font-bold tracking-tight lowercase" style={{ fontFamily: 'var(--font-display)', letterSpacing: '-0.03em' }}>
             the rest
@@ -36,7 +38,7 @@ export default function Home({ onOpenDownloader, onOpenStudio }: Props) {
           <p className="mt-4 text-sm" style={{ color: 'var(--color-text-secondary)' }}>{t('home.tagline')}</p>
         </motion.div>
 
-        <motion.div variants={fadeUp} className="grid grid-cols-2 gap-4">
+        <motion.div variants={fadeUp} className="grid grid-cols-3 gap-4">
           {cards.map(c => (
             <motion.button key={c.title}
               whileHover={{ scale: 1.015, y: -3 }} whileTap={{ scale: 0.985 }} transition={springSoft}

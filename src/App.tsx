@@ -2,6 +2,7 @@ import { useState, useCallback, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import Home from './components/Home';
 import Downloader from './components/Downloader';
+import Sketch from './components/Sketch';
 import FileUpload from './components/FileUpload';
 import LyricSync from './components/LyricSync';
 import Preview from './components/Preview';
@@ -9,10 +10,10 @@ import Generate from './components/Generate';
 import UpdateBanner from './components/UpdateBanner';
 import { springSoft } from './lib/motion';
 import { useI18n } from './lib/i18n';
-import { IconHome, IconDownload, IconFilm, IconCheck, IconGlobe } from './components/icons';
+import { IconHome, IconDownload, IconFilm, IconCheck, IconGlobe, IconMic } from './components/icons';
 import type { AppStep } from './types';
 
-type Module = 'home' | 'downloader' | 'studio';
+type Module = 'home' | 'downloader' | 'sketch' | 'studio';
 
 const STEPS: { key: AppStep; num: string }[] = [
   { key: 'upload', num: '01' },
@@ -76,6 +77,7 @@ export default function App() {
   const railItems: { key: Module; icon: React.ReactNode; label: string }[] = [
     { key: 'home', icon: <IconHome size={19} />, label: t('nav.home') },
     { key: 'downloader', icon: <IconDownload size={19} />, label: t('nav.downloader') },
+    { key: 'sketch', icon: <IconMic size={19} />, label: t('nav.sketch') },
     { key: 'studio', icon: <IconFilm size={19} />, label: t('nav.studio') },
   ];
 
@@ -156,9 +158,10 @@ export default function App() {
             <motion.div key={module === 'studio' ? `studio-${step}` : module}
               variants={pageVariants} initial="initial" animate="animate" className="h-full">
               {module === 'home' && (
-                <Home onOpenDownloader={() => setModule('downloader')} onOpenStudio={() => setModule('studio')} />
+                <Home onOpenDownloader={() => setModule('downloader')} onOpenSketch={() => setModule('sketch')} onOpenStudio={() => setModule('studio')} />
               )}
               {module === 'downloader' && <Downloader />}
+              {module === 'sketch' && <Sketch />}
               {module === 'studio' && step === 'upload' && (
                 <FileUpload
                   onUploadComplete={(id) => { setProjectId(id); setStep('sync'); }}

@@ -1,5 +1,6 @@
 mod downloader;
 mod render;
+mod sketch;
 
 use tauri::Manager;
 
@@ -40,7 +41,8 @@ pub fn run() {
             downloader::ytdlp_status,
             downloader::ytdlp_install,
             downloader::ytdlp_meta,
-            downloader::ytdlp_download
+            downloader::ytdlp_download,
+            sketch::import_beat
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
