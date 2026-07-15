@@ -1,31 +1,63 @@
-import { useState, useCallback } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { useState, useCallback, useEffect } from 'react';
+import { motion } from 'framer-motion';
+import Home from './components/Home';
+import Downloader from './components/Downloader';
 import FileUpload from './components/FileUpload';
 import LyricSync from './components/LyricSync';
 import Preview from './components/Preview';
 import Generate from './components/Generate';
 import UpdateBanner from './components/UpdateBanner';
-import { IconCheck } from './components/icons';
+import { springSoft } from './lib/motion';
+import { useI18n } from './lib/i18n';
+import { IconHome, IconDownload, IconFilm, IconCheck, IconGlobe } from './components/icons';
 import type { AppStep } from './types';
 
-const STEPS: { key: AppStep; label: string; icon: string }[] = [
-  { key: 'upload', label: '업로드', icon: '01' },
-  { key: 'sync', label: '싱크', icon: '02' },
-  { key: 'preview', label: '프리뷰', icon: '03' },
-  { key: 'generate', label: '렌더', icon: '04' },
+type Module = 'home' | 'downloader' | 'studio';
+
+const STEPS: { key: AppStep; num: string }[] = [
+  { key: 'upload', num: '01' },
+  { key: 'sync', num: '02' },
+  { key: 'preview', num: '03' },
+  { key: 'generate', num: '04' },
 ];
 
-// Apple-style page transition: compositor-friendly (opacity + transform only), a
-// critically-damped spring in, a quick ease out. No blur filter (heavy + un-Apple).
+const STEP_LABEL_KEY = {
+  upload: 'step.upload', sync: 'step.sync', preview: 'step.preview', generate: 'step.render',
+} as const;
+
 const pageVariants = {
-  initial: { opacity: 0, y: 22 },
-  animate: { opacity: 1, y: 0, transition: { type: 'spring' as const, bounce: 0, duration: 0.5 } },
-  exit: { opacity: 0, y: -14, transition: { duration: 0.22, ease: [0.4, 0, 1, 1] as [number, number, number, number] } },
+  initial: { opacity: 0, y: 16 },
+  animate: { opacity: 1, y: 0, transition: { type: 'spring' as const, bounce: 0, duration: 0.45 } },
+  exit: { opacity: 0, y: -10, transition: { duration: 0.18, ease: [0.4, 0, 1, 1] as [number, number, number, number] } },
 };
 
+/** Desktop-app shell guards: no browser zoom, no pinch, no page scroll. */
+function useAppShellGuards() {
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if ((e.metaKey || e.ctrlKey) && ['+', '-', '=', '0'].includes(e.key)) e.preventDefault();
+    };
+    const onWheel = (e: WheelEvent) => { if (e.ctrlKey || e.metaKey) e.preventDefault(); };
+    const onGesture = (e: Event) => e.preventDefault();
+    window.addEventListener('keydown', onKey);
+    window.addEventListener('wheel', onWheel, { passive: false });
+    window.addEventListener('gesturestart', onGesture);
+    window.addEventListener('gesturechange', onGesture);
+    return () => {
+      window.removeEventListener('keydown', onKey);
+      window.removeEventListener('wheel', onWheel);
+      window.removeEventListener('gesturestart', onGesture);
+      window.removeEventListener('gesturechange', onGesture);
+    };
+  }, []);
+}
+
 export default function App() {
+  const { t, lang, setLang } = useI18n();
+  const [module, setModule] = useState<Module>('home');
   const [step, setStep] = useState<AppStep>('upload');
   const [projectId, setProjectId] = useState('');
+  useAppShellGuards();
 
   const currentIdx = STEPS.findIndex(s => s.key === step);
 
@@ -41,87 +73,110 @@ export default function App() {
     setStep(targetStep);
   }, []);
 
-  return (
-    <div className="min-h-full flex flex-col relative">
-      {step !== 'upload' && (
-        <div className="fixed inset-0 pointer-events-none z-0">
-          <div className="absolute top-[-20%] left-[-10%] w-[60%] h-[60%] rounded-full opacity-[0.03]"
-            style={{ background: 'radial-gradient(circle, #ffffff, transparent 70%)' }} />
-          <div className="absolute bottom-[-15%] right-[-10%] w-[50%] h-[50%] rounded-full opacity-[0.02]"
-            style={{ background: 'radial-gradient(circle, #ffffff, transparent 70%)' }} />
-        </div>
-      )}
+  const railItems: { key: Module; icon: React.ReactNode; label: string }[] = [
+    { key: 'home', icon: <IconHome size={19} />, label: t('nav.home') },
+    { key: 'downloader', icon: <IconDownload size={19} />, label: t('nav.downloader') },
+    { key: 'studio', icon: <IconFilm size={19} />, label: t('nav.studio') },
+  ];
 
-      {/* Nav — translucent material with a soft scroll-edge (no hard divider) */}
-      <nav className="relative z-30"
+  return (
+    <div className="h-full flex overflow-hidden select-none">
+      {/* ── Left rail ─────────────────────────────────────────────── */}
+      <nav className="w-[58px] shrink-0 flex flex-col items-center py-3.5 gap-1.5 relative z-30"
         style={{
-          background: 'rgba(8, 8, 14, 0.6)',
+          background: 'rgba(10, 10, 16, 0.72)',
           backdropFilter: 'blur(24px) saturate(160%)',
           WebkitBackdropFilter: 'blur(24px) saturate(160%)',
-          boxShadow: '0 1px 0 0 rgba(255,255,255,0.05), 0 10px 30px rgba(0,0,0,0.25)',
+          boxShadow: '1px 0 0 0 rgba(255,255,255,0.05)',
         }}>
-        <div className="max-w-6xl mx-auto flex items-center justify-between py-4 px-6">
-          <motion.div className="flex items-center gap-2.5 cursor-pointer"
-            onClick={() => navigateTo('upload')}
-            initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: 0.1 }}>
-            <div className="w-8 h-8 rounded-lg flex items-center justify-center" style={{ background: '#ffffff' }}>
-              <span className="text-black text-sm font-bold" style={{ fontFamily: 'var(--font-display)' }}>L</span>
-            </div>
-            <span className="text-sm font-semibold tracking-wide" style={{ fontFamily: 'var(--font-display)' }}>
-              LYRIC VIDEO STUDIO
-            </span>
-          </motion.div>
+        <div className="w-9 h-9 rounded-xl flex items-center justify-center mb-2 cursor-pointer"
+          style={{ background: '#ffffff' }} onClick={() => setModule('home')} title="the rest">
+          <span className="text-black text-[13px] font-bold lowercase" style={{ fontFamily: 'var(--font-display)' }}>tr</span>
+        </div>
+        {railItems.map(item => {
+          const active = module === item.key;
+          return (
+            <motion.button key={item.key} whileTap={{ scale: 0.92 }} transition={springSoft}
+              onClick={() => setModule(item.key)} title={item.label}
+              className="w-10 h-10 rounded-xl flex items-center justify-center transition-colors"
+              style={{
+                background: active ? 'rgba(255,255,255,0.12)' : 'transparent',
+                color: active ? '#fff' : 'var(--color-text-muted)',
+              }}>
+              {item.icon}
+            </motion.button>
+          );
+        })}
+        <div className="flex-1" />
+        <motion.button whileTap={{ scale: 0.92 }} transition={springSoft}
+          onClick={() => setLang(lang === 'ko' ? 'en' : 'ko')} title={t('nav.lang')}
+          className="w-10 h-10 rounded-xl flex flex-col items-center justify-center gap-0.5 hover:bg-white/[0.06] transition-colors"
+          style={{ color: 'var(--color-text-muted)' }}>
+          <IconGlobe size={16} />
+          <span className="text-[8px] font-bold tracking-wide" style={{ fontFamily: 'var(--font-mono)' }}>{lang === 'ko' ? 'KO' : 'EN'}</span>
+        </motion.button>
+      </nav>
 
-          <div className="flex items-center gap-1">
+      {/* ── Main column ───────────────────────────────────────────── */}
+      <div className="flex-1 min-w-0 flex flex-col relative">
+        {/* Studio step header */}
+        {module === 'studio' && (
+          <header className="h-[52px] shrink-0 flex items-center justify-center gap-1 relative z-20"
+            style={{
+              background: 'rgba(8, 8, 14, 0.6)',
+              backdropFilter: 'blur(24px) saturate(160%)',
+              WebkitBackdropFilter: 'blur(24px) saturate(160%)',
+              boxShadow: '0 1px 0 0 rgba(255,255,255,0.05)',
+            }}>
             {STEPS.map((s, i) => {
               const isActive = s.key === step;
               const isDone = currentIdx > i;
-              const isClickable = (isDone || i === currentIdx + 1) && (s.key === 'upload' || projectId);
+              const isClickable = (isDone || i === currentIdx + 1 || i <= currentIdx) && (s.key === 'upload' || projectId);
               return (
-                <motion.div key={s.key} className="flex items-center"
-                  initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: 0.15 + i * 0.05 }}>
-                  {i > 0 && (
-                    <div className="w-6 h-px mx-1"
-                      style={{ background: isDone ? 'rgba(255,255,255,0.3)' : 'rgba(255,255,255,0.06)' }} />
-                  )}
+                <div key={s.key} className="flex items-center">
+                  {i > 0 && <div className="w-6 h-px mx-1" style={{ background: isDone ? 'rgba(255,255,255,0.3)' : 'rgba(255,255,255,0.06)' }} />}
                   <div onClick={() => isClickable && navigateTo(s.key)}
                     className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium transition-all duration-300 ${isClickable ? 'cursor-pointer hover:bg-white/[0.04]' : ''} ${isActive ? 'text-white' : isDone ? 'text-white/60' : 'text-[var(--color-text-muted)]'}`}
                     style={isActive ? { background: 'rgba(255,255,255,0.1)', border: '1px solid rgba(255,255,255,0.2)' } : { border: '1px solid transparent' }}>
                     <span className="text-[10px] opacity-60 flex items-center" style={{ fontFamily: 'var(--font-mono)' }}>
-                      {isDone ? <IconCheck size={11} /> : s.icon}
+                      {isDone ? <IconCheck size={11} /> : s.num}
                     </span>
-                    <span style={{ fontFamily: 'var(--font-display)' }}>{s.label}</span>
+                    <span style={{ fontFamily: 'var(--font-display)' }}>{t(STEP_LABEL_KEY[s.key])}</span>
                   </div>
-                </motion.div>
+                </div>
               );
             })}
-          </div>
-        </div>
-      </nav>
+          </header>
+        )}
 
-      {/* Content */}
-      <main className="flex-1 px-6 py-8 relative z-10">
-        <AnimatePresence mode="wait">
-          <motion.div key={step} variants={pageVariants} initial="initial" animate="animate" exit="exit">
-            {step === 'upload' && (
-              <FileUpload
-                onUploadComplete={(id) => { setProjectId(id); setStep('sync'); }}
-                onLoadProject={loadProject}
-              />
-            )}
-            {step === 'sync' && projectId && (
-              <LyricSync projectId={projectId} onComplete={() => setStep('preview')} />
-            )}
-            {step === 'preview' && projectId && (
-              <Preview projectId={projectId} onGenerate={() => setStep('generate')} onBack={() => setStep('sync')} />
-            )}
-            {step === 'generate' && projectId && (
-              <Generate projectId={projectId} onBack={() => setStep('preview')} onBackToSync={() => setStep('sync')} />
-            )}
-          </motion.div>
-        </AnimatePresence>
-      </main>
+        {/* Stage */}
+        <main className="flex-1 min-h-0 relative z-10">
+          {/* No AnimatePresence here: its enter-after-exit freezes under React 19
+              (same bug as qupid). A keyed remount with initial→animate is reliable. */}
+            <motion.div key={module === 'studio' ? `studio-${step}` : module}
+              variants={pageVariants} initial="initial" animate="animate" className="h-full">
+              {module === 'home' && (
+                <Home onOpenDownloader={() => setModule('downloader')} onOpenStudio={() => setModule('studio')} />
+              )}
+              {module === 'downloader' && <Downloader />}
+              {module === 'studio' && step === 'upload' && (
+                <FileUpload
+                  onUploadComplete={(id) => { setProjectId(id); setStep('sync'); }}
+                  onLoadProject={loadProject}
+                />
+              )}
+              {module === 'studio' && step === 'sync' && projectId && (
+                <LyricSync projectId={projectId} onComplete={() => setStep('preview')} />
+              )}
+              {module === 'studio' && step === 'preview' && projectId && (
+                <Preview projectId={projectId} onGenerate={() => setStep('generate')} onBack={() => setStep('sync')} />
+              )}
+              {module === 'studio' && step === 'generate' && projectId && (
+                <Generate projectId={projectId} onBack={() => setStep('preview')} onBackToSync={() => setStep('sync')} />
+              )}
+            </motion.div>
+        </main>
+      </div>
 
       <UpdateBanner />
     </div>

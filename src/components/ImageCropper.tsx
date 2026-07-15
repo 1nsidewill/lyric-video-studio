@@ -1,5 +1,6 @@
 import { useState, useRef, useCallback, useEffect } from 'react';
 import { motion } from 'framer-motion';
+import { useI18n } from '../lib/i18n';
 
 interface Props {
   imageUrl: string;
@@ -8,6 +9,7 @@ interface Props {
 }
 
 export default function ImageCropper({ imageUrl, onCrop, onCancel }: Props) {
+  const { t } = useI18n();
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const imgRef = useRef<HTMLImageElement | null>(null);
   const [imgLoaded, setImgLoaded] = useState(false);
@@ -135,11 +137,11 @@ export default function ImageCropper({ imageUrl, onCrop, onCancel }: Props) {
       className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-md">
       <motion.div initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }}
         className="glass rounded-2xl p-6 max-w-lg w-full mx-4 space-y-4">
-        <h3 className="text-lg font-bold text-center" style={{ fontFamily: 'var(--font-display)' }}>
-          CROP ARTWORK · 1:1
+        <h3 className="text-lg font-bold text-center tracking-tight" style={{ fontFamily: 'var(--font-display)' }}>
+          {t('crop.title')}
         </h3>
-        <p className="text-xs text-center text-[var(--color-text-muted)]" style={{ fontFamily: 'var(--font-mono)' }}>
-          drag to move · scroll to resize
+        <p className="text-xs text-center text-[var(--color-text-muted)]">
+          {t('crop.hint')}
         </p>
 
         <div ref={containerRef} className="flex justify-center">
@@ -149,15 +151,15 @@ export default function ImageCropper({ imageUrl, onCrop, onCancel }: Props) {
         </div>
 
         <div className="flex gap-3">
-          <motion.button whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.97 }} onClick={onCancel}
+          <motion.button whileTap={{ scale: 0.97 }} onClick={onCancel}
             className="flex-1 py-3 rounded-xl text-sm font-semibold"
-            style={{ fontFamily: 'var(--font-display)', background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)' }}>
-            CANCEL
+            style={{ fontFamily: 'var(--font-display)', background: 'rgba(255,255,255,0.06)', color: 'var(--color-text-secondary)' }}>
+            {t('crop.cancel')}
           </motion.button>
-          <motion.button whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.97 }} onClick={doCrop}
-            className="flex-1 py-3 rounded-xl text-sm font-bold"
-            style={{ fontFamily: 'var(--font-display)', background: 'linear-gradient(135deg, var(--color-accent), var(--color-neon-pink))' }}>
-            APPLY CROP
+          <motion.button whileTap={{ scale: 0.97 }} onClick={doCrop}
+            className="flex-1 py-3 rounded-xl text-sm font-semibold"
+            style={{ fontFamily: 'var(--font-display)', background: '#ffffff', color: '#000000' }}>
+            {t('crop.apply')}
           </motion.button>
         </div>
       </motion.div>

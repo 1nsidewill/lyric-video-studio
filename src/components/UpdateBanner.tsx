@@ -3,6 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { check, type Update } from '@tauri-apps/plugin-updater';
 import { relaunch } from '@tauri-apps/plugin-process';
 import { springSoft } from '../lib/motion';
+import { useI18n } from '../lib/i18n';
 import { IconRefresh, IconCheck, IconAlert, IconX } from './icons';
 
 type Phase = 'idle' | 'available' | 'downloading' | 'ready' | 'error';
@@ -13,6 +14,7 @@ type Phase = 'idle' | 'available' | 'downloading' | 'ready' | 'error';
  * failure (offline, no endpoint, dev build) is swallowed so it never nags.
  */
 export default function UpdateBanner() {
+  const { t } = useI18n();
   const [update, setUpdate] = useState<Update | null>(null);
   const [phase, setPhase] = useState<Phase>('idle');
   const [pct, setPct] = useState(0);
@@ -75,19 +77,19 @@ export default function UpdateBanner() {
                 </span>
                 <div className="flex-1 min-w-0">
                   <p className="text-sm font-semibold tracking-tight" style={{ fontFamily: 'var(--font-display)' }}>
-                    새 버전 {update.version}
+                    {t('ub.new', { v: update.version })}
                   </p>
                   <p className="text-xs truncate" style={{ color: 'var(--color-text-muted)' }}>
-                    지금 설치하고 재시작할 수 있어요
+                    {t('ub.sub')}
                   </p>
                 </div>
                 <motion.button whileTap={{ scale: 0.96 }} transition={springSoft} onClick={install}
                   className="shrink-0 px-3.5 py-2 rounded-xl text-sm font-semibold"
                   style={{ fontFamily: 'var(--font-display)', background: '#fff', color: '#000' }}>
-                  설치
+                  {t('ub.install')}
                 </motion.button>
                 <button onClick={dismiss} className="shrink-0 w-8 h-8 rounded-lg flex items-center justify-center hover:bg-white/10 transition-colors"
-                  style={{ color: 'var(--color-text-muted)' }} title="나중에">
+                  style={{ color: 'var(--color-text-muted)' }} title={t('ub.later')}>
                   <IconX size={15} />
                 </button>
               </>
@@ -103,7 +105,7 @@ export default function UpdateBanner() {
                 </span>
                 <div className="flex-1 min-w-0">
                   <p className="text-sm font-semibold tracking-tight" style={{ fontFamily: 'var(--font-display)' }}>
-                    업데이트 다운로드 중 · {pct}%
+                    {t('ub.downloading', { p: pct })}
                   </p>
                   <div className="mt-1.5 h-1 rounded-full overflow-hidden" style={{ background: 'rgba(255,255,255,0.12)' }}>
                     <motion.div className="h-full rounded-full" style={{ background: '#fff' }}
@@ -119,7 +121,7 @@ export default function UpdateBanner() {
                   <IconCheck size={18} />
                 </span>
                 <p className="flex-1 text-sm font-semibold tracking-tight" style={{ fontFamily: 'var(--font-display)' }}>
-                  설치 완료 · 재시작 중…
+                  {t('ub.ready')}
                 </p>
               </>
             )}
@@ -131,10 +133,10 @@ export default function UpdateBanner() {
                   <IconAlert size={18} />
                 </span>
                 <p className="flex-1 text-sm font-semibold tracking-tight" style={{ fontFamily: 'var(--font-display)' }}>
-                  업데이트를 완료하지 못했어요
+                  {t('ub.error')}
                 </p>
                 <button onClick={dismiss} className="shrink-0 w-8 h-8 rounded-lg flex items-center justify-center hover:bg-white/10 transition-colors"
-                  style={{ color: 'var(--color-text-muted)' }} title="닫기">
+                  style={{ color: 'var(--color-text-muted)' }} title={t('ub.close')}>
                   <IconX size={15} />
                 </button>
               </>

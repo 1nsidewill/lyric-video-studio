@@ -8,7 +8,8 @@ import { getSingerColor } from '../utils/singerColors';
 import { parseSingerTags } from '../utils/parseSingerTags';
 import { loadProject, saveProject, projectMediaSrc } from '../lib/storage';
 import { springSoft } from '../lib/motion';
-import { IconPlay, IconPause, IconPencil, IconTrash, IconCheck } from './icons';
+import { useI18n } from '../lib/i18n';
+import { IconPlay, IconPause, IconPencil, IconTrash, IconCheck, IconX } from './icons';
 import type { LyricLine, ProjectData } from '../types';
 
 interface Props {
@@ -32,10 +33,10 @@ interface Particle {
 const STORAGE_KEY = (id: string) => `lyric-sync-${id}`;
 
 export default function LyricSync({ projectId, onComplete }: Props) {
+  const { t } = useI18n();
   const [project, setProject] = useState<ProjectData | null>(null);
   const [lyrics, setLyrics] = useState<LyricLine[]>([]);
   const [currentIdx, setCurrentIdx] = useState(0);
-  const [synced, setSynced] = useState(false);
   const [combo, setCombo] = useState(0);
   const [lastHitTime, setLastHitTime] = useState(0);
   const [flashTrigger, setFlashTrigger] = useState(0);
@@ -43,6 +44,8 @@ export default function LyricSync({ projectId, onComplete }: Props) {
   const editingSingerIdx: number | null = null;
   const [editingIdx, setEditingIdx] = useState<number | null>(null);
   const [editText, setEditText] = useState('');
+  const [editingAll, setEditingAll] = useState(false);
+  const [allText, setAllText] = useState('');
 
   const containerRef = useRef<HTMLDivElement>(null);
   const listRef = useRef<HTMLDivElement>(null);
@@ -51,7 +54,7 @@ export default function LyricSync({ projectId, onComplete }: Props) {
 
   const [audioSrc, setAudioSrc] = useState<string | null>(null);
   const [artworkSrc, setArtworkSrc] = useState<string>('');
-  const { isPlaying, currentTime, duration, toggle, seek, play, restart, audioRef } = useAudioPlayer(audioSrc);
+  const { isPlaying, currentTime, duration, toggle, seek, play, pause, restart, audioRef } = useAudioPlayer(audioSrc);
 
   // Load project (local storage) and restore in-progress sync from localStorage
   useEffect(() => {
@@ -70,7 +73,6 @@ export default function LyricSync({ projectId, onComplete }: Props) {
           const restored = parseSingerTags(parsed.lyrics);
           setLyrics(restored);
           setCurrentIdx(parsed.currentIdx);
-          if (parsed.currentIdx >= restored.length) setSynced(true);
           return;
         } catch { /* fall through */ }
       }
@@ -115,7 +117,8 @@ export default function LyricSync({ projectId, onComplete }: Props) {
 
     setLyrics(prev => {
       const next = [...prev];
-      next[currentIdx] = { ...next[currentIdx], start_time: now };
+      // Clear this line's end so it is recomputed from its (possibly new) neighbour on save.
+      next[currentIdx] = { ...next[currentIdx], start_time: now, end_time: null };
       if (currentIdx > 0 && next[currentIdx - 1].end_time === null) {
         next[currentIdx - 1] = { ...next[currentIdx - 1], end_time: now };
       }
@@ -129,7 +132,6 @@ export default function LyricSync({ projectId, onComplete }: Props) {
     const lineEl = listRef.current?.children[currentIdx] as HTMLElement | null;
     triggerHitFeedback(lineEl);
 
-    if (currentIdx === lyrics.length - 1) setSynced(true);
     setCurrentIdx(prev => Math.min(prev + 1, lyrics.length));
   }, [currentIdx, currentTime, lyrics.length, triggerHitFeedback, audioRef]);
 
@@ -140,7 +142,6 @@ export default function LyricSync({ projectId, onComplete }: Props) {
       next[currentIdx] = { ...next[currentIdx], start_time: -1 };
       return next;
     });
-    if (currentIdx === lyrics.length - 1) setSynced(true);
     setCurrentIdx(prev => Math.min(prev + 1, lyrics.length));
   }, [currentIdx, lyrics.length]);
 
@@ -155,7 +156,6 @@ export default function LyricSync({ projectId, onComplete }: Props) {
     });
     setCurrentIdx(prevIdx);
     setCombo(0);
-    setSynced(false);
   }, [currentIdx]);
 
   const deleteLine = useCallback((idx: number) => {
@@ -164,13 +164,13 @@ export default function LyricSync({ projectId, onComplete }: Props) {
       return next;
     });
     if (currentIdx >= idx && currentIdx > 0) setCurrentIdx(prev => Math.max(0, prev - 1));
-    setSynced(false);
   }, [currentIdx]);
 
   const startEdit = useCallback((idx: number) => {
+    pause(); // freeze playback so the track doesn't run off while you retype the line
     setEditingIdx(idx);
     setEditText(lyrics[idx].text);
-  }, [lyrics]);
+  }, [lyrics, pause]);
 
   const confirmEdit = useCallback(() => {
     if (editingIdx === null) return;
@@ -193,32 +193,84 @@ export default function LyricSync({ projectId, onComplete }: Props) {
     setEditText('');
   }, []);
 
+  // Full-lyrics editor: serialize every line back to text (re-emitting [Singer] part tags),
+  // so the user can add missing lines / reorder in one textarea.
+  const openAllEdit = useCallback(() => {
+    pause();
+    let prevSinger: string | undefined;
+    const out: string[] = [];
+    for (const l of lyrics) {
+      if (l.singer !== prevSinger) {
+        if (l.singer) out.push(`[${l.singer}]`);
+        prevSinger = l.singer;
+      }
+      out.push(l.text);
+    }
+    setAllText(out.join('\n'));
+    setEditingAll(true);
+  }, [lyrics, pause]);
+
+  // Re-parse the edited text, then carry each unchanged line's timestamp over by matching
+  // text (order-preserving, so duplicate lines and inserts are handled). New lines stay
+  // unsynced; the cursor jumps to the first line that still needs a timestamp.
+  const confirmAllEdit = useCallback(() => {
+    const raw: LyricLine[] = allText
+      .split('\n')
+      .map(t => t.trim())
+      .filter(Boolean)
+      .map((text, i) => ({ index: i, text, start_time: 0, end_time: null }));
+    const parsed = parseSingerTags(raw);
+
+    const pool = new Map<string, { s: number; e: number | null }[]>();
+    for (const l of lyrics) {
+      if (l.start_time === 0) continue; // only carry over recorded / skipped lines
+      const key = l.text.trim();
+      const arr = pool.get(key) ?? [];
+      arr.push({ s: l.start_time, e: l.end_time });
+      pool.set(key, arr);
+    }
+    const merged = parsed.map((l, i) => {
+      const q = pool.get(l.text.trim());
+      if (q && q.length) {
+        const t = q.shift()!;
+        return { ...l, index: i, start_time: t.s, end_time: t.e };
+      }
+      return { ...l, index: i };
+    });
+
+    setLyrics(merged);
+    const firstUnsynced = merged.findIndex(l => l.start_time === 0);
+    setCurrentIdx(firstUnsynced === -1 ? merged.length : firstUnsynced);
+    setEditingAll(false);
+  }, [allText, lyrics]);
+
+  const cancelAllEdit = useCallback(() => setEditingAll(false), []);
+
   const resetAll = useCallback(() => {
     setLyrics(prev => prev.map(l => ({ ...l, start_time: 0, end_time: null })));
     setCurrentIdx(0);
     setCombo(0);
     setTotalHits(0);
-    setSynced(false);
     restart();
   }, [restart]);
 
-  // Click a lyric line → seek there. If already committed, next space commits idx+1
+  // Click a lyric line → seek to it and park the cursor there, WITHOUT touching any other
+  // line's timestamp. Press Space to re-stamp just this line at the current playhead; keep
+  // pressing to overwrite the following lines from here.
   const handleLineClick = useCallback((idx: number) => {
-    if (editingSingerIdx !== null) return;
+    if (editingIdx !== null) return; // don't seek out from under an open editor
     const line = lyrics[idx];
-    const hasTimestamp = line.start_time > 0;
-    const seekTo = hasTimestamp
+    const seekTo = line.start_time > 0
       ? line.start_time
       : (idx > 0 && lyrics[idx - 1].start_time > 0 ? lyrics[idx - 1].start_time : 0);
     seek(seekTo);
-    setCurrentIdx(hasTimestamp ? idx + 1 : idx);
-    setSynced(false);
+    setCurrentIdx(idx);
     play();
-  }, [lyrics, seek, play, editingSingerIdx]);
+  }, [lyrics, seek, play, editingIdx]);
 
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
-      if (editingSingerIdx !== null || editingIdx !== null) return;
+      if (editingSingerIdx !== null || editingIdx !== null || editingAll) return;
       if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) return;
       switch (e.code) {
         case 'Space':
@@ -245,7 +297,7 @@ export default function LyricSync({ projectId, onComplete }: Props) {
     };
     window.addEventListener('keydown', handler);
     return () => window.removeEventListener('keydown', handler);
-  }, [isPlaying, toggle, stampLine, rollback, resetAll, skipLine, editingSingerIdx, editingIdx]);
+  }, [isPlaying, toggle, stampLine, rollback, resetAll, skipLine, editingSingerIdx, editingIdx, editingAll]);
 
   const skipToPreview = async () => {
     if (!project) return;
@@ -293,15 +345,20 @@ export default function LyricSync({ projectId, onComplete }: Props) {
     );
   }
 
-  const progress = lyrics.length > 0 ? (currentIdx / lyrics.length) * 100 : 0;
+  // A line counts as "done" when it has a real time (>0) or was explicitly skipped (-1).
+  // `synced` is derived, so clicking back to fine-tune one line never flips it off.
+  const syncedCount = lyrics.filter(l => l.start_time !== 0).length;
+  const synced = lyrics.length > 0 && syncedCount === lyrics.length;
+  const progress = lyrics.length > 0 ? (syncedCount / lyrics.length) * 100 : 0;
 
   return (
-    <motion.div animate={shakeControls} ref={containerRef} className="max-w-4xl mx-auto relative">
+    <motion.div animate={shakeControls} ref={containerRef}
+      className="h-full min-h-0 w-full max-w-4xl mx-auto px-6 py-4 flex flex-col relative">
       <HitEffect containerRef={containerRef} />
       <ScreenFlash trigger={flashTrigger} combo={combo} />
 
       {/* Header */}
-      <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="flex items-center gap-5 mb-6">
+      <motion.div initial={{ opacity: 0, y: 14 }} animate={{ opacity: 1, y: 0 }} className="flex items-center gap-5 mb-4 shrink-0">
         <motion.img src={artworkSrc} alt="album art" className="w-16 h-16 rounded-xl object-cover"
           style={{ boxShadow: '0 0 30px rgba(255, 255, 255, 0.05)' }} whileHover={{ scale: 1.05 }} />
         <div className="flex-1 min-w-0">
@@ -323,7 +380,7 @@ export default function LyricSync({ projectId, onComplete }: Props) {
 
       {/* Progress bar — clickable to seek */}
       <motion.div initial={{ opacity: 0, scaleX: 0 }} animate={{ opacity: 1, scaleX: 1 }}
-        className="relative h-3 rounded-full cursor-pointer group mb-2"
+        className="relative h-3 rounded-full cursor-pointer group mb-2 shrink-0"
         style={{ background: 'var(--color-bg-card)' }}
         onClick={(e) => {
           if (duration <= 0) return;
@@ -345,55 +402,58 @@ export default function LyricSync({ projectId, onComplete }: Props) {
 
       {/* Stats + controls */}
       <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.2 }}
-        className="flex justify-between items-center mb-4">
+        className="flex justify-between items-center mb-3 shrink-0">
         <div className="flex gap-4 text-xs" style={{ fontFamily: 'var(--font-mono)' }}>
           <span className="text-[var(--color-text-muted)]">
-            <span className="text-[var(--color-text-primary)]">{currentIdx}</span>/{lyrics.length} lines
+            <span className="text-[var(--color-text-primary)]">{syncedCount}</span>/{lyrics.length} {t('sync.lines')}
           </span>
-          <span className="text-[var(--color-text-muted)]">{Math.round(progress)}% 완료</span>
+          <span className="text-[var(--color-text-muted)]">{t('sync.done', { p: Math.round(progress) })}</span>
         </div>
         <div className="flex gap-3 text-xs text-[var(--color-text-muted)]">
           <span>
             <kbd className="px-1.5 py-0.5 rounded text-[10px] font-bold"
               style={{ background: 'rgba(255, 255, 255, 0.1)', color: 'var(--color-text-primary)', fontFamily: 'var(--font-mono)' }}>
-              Space</kbd> {isPlaying ? '히트' : '재생'}
+              Space</kbd> {isPlaying ? t('sync.kbd.hit') : t('sync.kbd.play')}
           </span>
           <span>
             <kbd className="px-1.5 py-0.5 rounded text-[10px] font-bold"
               style={{ background: 'rgba(255,255,255,0.05)', color: 'var(--color-text-secondary)', fontFamily: 'var(--font-mono)' }}>
-              ←</kbd> 되돌리기
+              ←</kbd> {t('sync.kbd.undo')}
           </span>
           <span>
             <kbd className="px-1.5 py-0.5 rounded text-[10px] font-bold"
               style={{ background: 'rgba(255,255,255,0.05)', color: 'var(--color-text-secondary)', fontFamily: 'var(--font-mono)' }}>
-              Esc</kbd> 정지
+              Esc</kbd> {t('sync.kbd.stop')}
           </span>
           <span>
             <kbd className="px-1.5 py-0.5 rounded text-[10px] font-bold"
               style={{ background: 'rgba(255,255,255,0.05)', color: 'var(--color-text-secondary)', fontFamily: 'var(--font-mono)' }}>
-              Tab</kbd> 건너뛰기
+              Tab</kbd> {t('sync.kbd.skip')}
           </span>
-          <span className="text-[var(--color-text-muted)] opacity-50">· 클릭해서 이동</span>
+          <span className="text-[var(--color-text-muted)] opacity-50">{t('sync.hint')}</span>
         </div>
       </motion.div>
 
       {/* Lyric lines */}
-      <div ref={listRef} className="h-[50vh] overflow-y-auto space-y-0.5 rounded-2xl p-4 relative glass-strong"
+      <div ref={listRef} className="flex-1 min-h-0 overflow-y-auto space-y-0.5 rounded-2xl p-4 relative glass-strong"
         style={{ border: '1px solid rgba(255,255,255,0.06)' }}>
         <AnimatePresence>
           {lyrics.map((line, i) => {
             const isCurrent = i === currentIdx;
-            const isDone = i < currentIdx;
             const isSkipped = line.start_time === -1;
+            const recorded = line.start_time > 0;
+            const marked = recorded || isSkipped;
             const singerClr = getSingerColor(line.singer);
             const singerRgb = singerClr ? `${singerClr[0]}, ${singerClr[1]}, ${singerClr[2]}` : null;
             return (
               <motion.div
                 key={i} layout
                 initial={{ opacity: 0, x: 20 }}
-                animate={{ opacity: isCurrent ? 1 : isDone ? 0.7 : 0.25, x: 0, scale: 1, y: 0 }}
+                animate={{ opacity: isCurrent ? 1 : marked ? 0.7 : 0.25, x: 0, scale: 1, y: 0 }}
                 transition={{ layout: { type: 'spring', stiffness: 300, damping: 30 }, opacity: { duration: 0.2 } }}
                 onClick={() => handleLineClick(i)}
+                onDoubleClick={(e) => { e.stopPropagation(); startEdit(i); }}
+                title={t('sync.dbl')}
                 className={`group flex items-center gap-3 px-4 py-3 rounded-xl cursor-pointer transition-colors relative ${isCurrent ? 'z-10' : 'hover:bg-white/[0.03]'}`}
                 style={isCurrent ? {
                   background: singerRgb
@@ -401,7 +461,7 @@ export default function LyricSync({ projectId, onComplete }: Props) {
                     : 'linear-gradient(90deg, rgba(255, 255, 255, 0.08), rgba(255, 255, 255, 0.02))',
                   border: `1px solid rgba(${singerRgb || '255, 255, 255'}, 0.25)`,
                   boxShadow: `0 0 30px rgba(${singerRgb || '255, 255, 255'}, 0.05)`,
-                } : isDone ? {
+                } : marked ? {
                   background: 'rgba(255,255,255,0.02)', border: '1px solid transparent',
                   borderLeft: singerRgb ? `3px solid rgba(${singerRgb}, 0.4)` : '1px solid transparent',
                 } : {
@@ -411,8 +471,8 @@ export default function LyricSync({ projectId, onComplete }: Props) {
               >
                 {/* Timestamp */}
                 <span className="w-16 text-right shrink-0 text-xs tabular-nums"
-                  style={{ fontFamily: 'var(--font-mono)', color: isSkipped ? 'var(--color-text-muted)' : isDone ? 'var(--color-text-primary)' : 'var(--color-text-muted)' }}>
-                  {isSkipped ? 'SKIP' : isDone ? formatTime(line.start_time) : '--:--'}
+                  style={{ fontFamily: 'var(--font-mono)', color: recorded ? 'var(--color-text-primary)' : 'var(--color-text-muted)' }}>
+                  {isSkipped ? 'SKIP' : recorded ? formatTime(line.start_time) : '--:--'}
                 </span>
 
                 {/* Lyric text or edit input */}
@@ -423,6 +483,7 @@ export default function LyricSync({ projectId, onComplete }: Props) {
                       value={editText}
                       onChange={e => setEditText(e.target.value)}
                       onKeyDown={e => { if (e.key === 'Enter') confirmEdit(); if (e.key === 'Escape') cancelEdit(); }}
+                      onFocus={e => e.target.select()}
                       autoFocus
                       className="flex-1 px-2 py-1 rounded-lg text-sm bg-transparent focus:outline-none focus:ring-1 focus:ring-[var(--color-text-primary)]/40"
                       style={{ fontFamily: 'var(--font-mono)', color: 'var(--color-lyric-active)', border: '1px solid rgba(255, 255, 255, 0.3)' }}
@@ -438,7 +499,7 @@ export default function LyricSync({ projectId, onComplete }: Props) {
                   <span className={`flex-1 transition-all ${isCurrent ? 'text-base font-semibold' : 'text-sm'} ${isSkipped ? 'line-through opacity-30' : ''}`}
                     style={{
                       fontFamily: isCurrent ? 'var(--font-display)' : 'var(--font-body)',
-                      color: isCurrent ? 'var(--color-lyric-active)' : isDone ? 'var(--color-lyric-past)' : 'var(--color-lyric-inactive)',
+                      color: isCurrent ? 'var(--color-lyric-active)' : recorded ? 'var(--color-lyric-past)' : 'var(--color-lyric-inactive)',
                       textShadow: isCurrent ? '0 0 20px rgba(255, 255, 255, 0.2)' : 'none',
                     }}>
                     {line.text}
@@ -459,20 +520,20 @@ export default function LyricSync({ projectId, onComplete }: Props) {
                   )}
 
                   {editingIdx !== i && (
-                    <div className="flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity">
+                    <div className={`flex items-center gap-0.5 transition-opacity ${isCurrent ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'}`}>
                       <button onClick={(e) => { e.stopPropagation(); startEdit(i); }}
                         className="w-6 h-6 rounded-md flex items-center justify-center hover:bg-white/10 transition-colors"
                         style={{ color: 'var(--color-text-muted)' }}
-                        title="편집"><IconPencil size={13} /></button>
+                        title={t('sync.edit')}><IconPencil size={13} /></button>
                       <button onClick={(e) => { e.stopPropagation(); deleteLine(i); }}
                         className="w-6 h-6 rounded-md flex items-center justify-center hover:bg-[rgba(244,63,94,0.18)] transition-colors"
                         style={{ color: 'var(--color-text-muted)' }}
-                        title="삭제"><IconTrash size={13} /></button>
+                        title={t('sync.delete')}><IconTrash size={13} /></button>
                     </div>
                   )}
 
                   {/* Status */}
-                  {isDone && editingIdx !== i && (
+                  {recorded && !isCurrent && editingIdx !== i && (
                     <motion.div initial={{ scale: 0 }} animate={{ scale: 1 }}
                       transition={{ type: 'spring', bounce: 0.35, duration: 0.4 }}
                       className="w-5 h-5 rounded-full flex items-center justify-center"
@@ -491,18 +552,23 @@ export default function LyricSync({ projectId, onComplete }: Props) {
       </div>
 
       {/* Actions */}
-      <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.3 }} className="flex gap-3 mt-6">
+      <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.3 }} className="flex gap-3 mt-4 shrink-0">
         <motion.button whileTap={{ scale: 0.97 }} transition={springSoft} onClick={toggle}
           className="flex-1 py-3.5 rounded-xl font-semibold text-sm flex items-center justify-center gap-2"
           style={{ fontFamily: 'var(--font-display)', background: 'rgba(255,255,255,0.06)', color: 'var(--color-text-primary)' }}>
-          {isPlaying ? <><IconPause size={16} /> 일시정지</> : <><IconPlay size={16} /> 재생</>}
+          {isPlaying ? <><IconPause size={16} /> {t('sync.pause')}</> : <><IconPlay size={16} /> {t('sync.play')}</>}
+        </motion.button>
+        <motion.button whileTap={{ scale: 0.97 }} transition={springSoft} onClick={openAllEdit}
+          className="py-3.5 px-4 rounded-xl font-semibold text-sm flex items-center gap-1.5"
+          style={{ fontFamily: 'var(--font-display)', background: 'rgba(255,255,255,0.06)', color: 'var(--color-text-secondary)' }}>
+          <IconPencil size={15} /> {t('sync.editAll')}
         </motion.button>
         <motion.button
           whileTap={{ scale: 0.97 }} transition={springSoft}
           onClick={skipToPreview}
-          className="py-3.5 px-5 rounded-xl font-semibold text-sm"
+          className="py-3.5 px-4 rounded-xl font-semibold text-sm"
           style={{ fontFamily: 'var(--font-display)', background: 'rgba(255,255,255,0.06)', color: 'var(--color-text-secondary)' }}>
-          건너뛰기
+          {t('sync.skip')}
         </motion.button>
         <motion.button
           whileHover={synced ? { scale: 1.01, y: -1 } : {}}
@@ -516,9 +582,61 @@ export default function LyricSync({ projectId, onComplete }: Props) {
             color: synced ? '#000' : 'var(--color-text-muted)',
             boxShadow: synced ? '0 8px 30px rgba(255,255,255,0.12)' : 'none',
           }}>
-          완료 · 프리뷰로
+          {t('sync.complete')}
         </motion.button>
       </motion.div>
+
+      {/* Full-lyrics editor — add/remove/reorder lines mid-sync; unchanged lines keep their sync */}
+      <AnimatePresence>
+        {editingAll && (
+          <motion.div
+            initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+            className="fixed inset-0 z-50 flex items-center justify-center p-6"
+            style={{ background: 'rgba(0,0,0,0.55)', backdropFilter: 'blur(8px)', WebkitBackdropFilter: 'blur(8px)' }}
+            onClick={cancelAllEdit}>
+            <motion.div
+              initial={{ scale: 0.96, y: 12 }} animate={{ scale: 1, y: 0 }} exit={{ scale: 0.98, opacity: 0 }}
+              transition={springSoft}
+              className="glass-strong rounded-2xl p-5 w-full max-w-2xl"
+              onClick={e => e.stopPropagation()}>
+              <div className="flex items-center justify-between mb-2">
+                <h3 className="text-lg font-bold tracking-tight" style={{ fontFamily: 'var(--font-display)' }}>{t('sync.editAll')}</h3>
+                <button onClick={cancelAllEdit}
+                  className="w-8 h-8 rounded-lg flex items-center justify-center hover:bg-white/10 transition-colors"
+                  style={{ color: 'var(--color-text-muted)' }}><IconX size={16} /></button>
+              </div>
+              <p className="text-xs mb-3 leading-relaxed" style={{ color: 'var(--color-text-muted)' }}>
+                {t('sync.editDesc')} <span style={{ fontFamily: 'var(--font-mono)', color: 'var(--color-text-secondary)' }}>[Name]</span> {t('sync.editDesc2')}
+              </p>
+              <textarea
+                value={allText}
+                onChange={e => setAllText(e.target.value)}
+                onKeyDown={e => {
+                  if (e.key === 'Escape') { e.preventDefault(); cancelAllEdit(); }
+                  if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) { e.preventDefault(); confirmAllEdit(); }
+                }}
+                autoFocus
+                spellCheck={false}
+                className="w-full h-[46vh] rounded-xl p-3 text-sm resize-none focus:outline-none"
+                style={{ fontFamily: 'var(--font-mono)', background: 'rgba(0,0,0,0.35)', border: '1px solid rgba(255,255,255,0.12)', color: 'var(--color-text-primary)', lineHeight: 1.7 }}
+              />
+              <div className="flex items-center justify-between mt-4">
+                <span className="text-[11px]" style={{ color: 'var(--color-text-muted)', fontFamily: 'var(--font-mono)' }}>
+                  {t('sync.editCount', { n: allText.split('\n').map(s => s.trim()).filter(Boolean).length })}
+                </span>
+                <div className="flex gap-2">
+                  <motion.button whileTap={{ scale: 0.97 }} transition={springSoft} onClick={cancelAllEdit}
+                    className="px-4 py-2.5 rounded-xl font-semibold text-sm"
+                    style={{ fontFamily: 'var(--font-display)', background: 'rgba(255,255,255,0.06)', color: 'var(--color-text-secondary)' }}>{t('sync.cancel')}</motion.button>
+                  <motion.button whileTap={{ scale: 0.97 }} transition={springSoft} onClick={confirmAllEdit}
+                    className="px-4 py-2.5 rounded-xl font-semibold text-sm flex items-center gap-1.5"
+                    style={{ fontFamily: 'var(--font-display)', background: '#fff', color: '#000' }}><IconCheck size={15} /> {t('sync.save')}</motion.button>
+                </div>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </motion.div>
   );
 }

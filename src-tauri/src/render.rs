@@ -85,10 +85,47 @@ async fn run_ffmpeg(args: Vec<String>, stage: &str) -> Result<(), String> {
     Err(msg)
 }
 
+/// Append the audio codec, run FFmpeg, and finalize to the user's path. Audio is
+/// **stream-copied** (`-c:a copy`) so the track is bit-for-bit identical to the source —
+/// no re-encode, no resample, no quality loss. Only if the source codec cannot be stored in
+/// MP4 (e.g. raw WAV / FLAC) do we fall back to ALAC, which is *still lossless*. We never
+/// transcode to a lossy codec, so the output audio always matches the source's fidelity.
+async fn mux_audio_and_finalize(
+    base: Vec<String>,
+    duration: f64,
+    stage: &str,
+    output_path: &str,
+) -> Result<(), String> {
+    let acodecs = ["copy", "alac"];
+    for (i, acodec) in acodecs.iter().enumerate() {
+        let mut args = base.clone();
+        args.push("-c:a".into());
+        args.push((*acodec).into());
+        if duration > 0.0 {
+            args.push("-t".into());
+            args.push(format!("{duration}"));
+        }
+        let temp = temp_output_path();
+        args.push(temp.to_string_lossy().into_owned());
+
+        match run_ffmpeg(args, stage).await {
+            Ok(()) => return finalize_output(&temp, output_path),
+            Err(e) => {
+                let _ = std::fs::remove_file(&temp);
+                if i + 1 == acodecs.len() {
+                    return Err(e);
+                }
+                log::info!("[render] '-c:a copy' unavailable for this source; retrying lossless (alac)");
+            }
+        }
+    }
+    unreachable!()
+}
+
 /// WebCodecs path: mux a pre-encoded H.264 Annex B stream with audio into MP4.
 /// `-c:v copy` preserves the browser's GPU-encoded bitstream (no re-encode);
 /// `-fflags +genpts` regenerates monotonic PTS from `-r fps` (WebCodecs Annex B
-/// carries no timing).
+/// carries no timing). Audio is copied verbatim (see `mux_audio_and_finalize`).
 #[tauri::command]
 pub async fn mux_h264(
     h264_path: String,
@@ -97,7 +134,7 @@ pub async fn mux_h264(
     fps: u32,
     duration: f64,
 ) -> Result<(), String> {
-    let mut args: Vec<String> = vec![
+    let base: Vec<String> = vec![
         "-y".into(),
         "-nostdin".into(),
         "-fflags".into(),
@@ -116,27 +153,14 @@ pub async fn mux_h264(
         "1:a:0".into(),
         "-c:v".into(),
         "copy".into(),
-        "-c:a".into(),
-        "aac".into(),
-        "-b:a".into(),
-        "320k".into(),
-        "-ar".into(),
-        "48000".into(),
         "-movflags".into(),
         "+faststart".into(),
     ];
-    if duration > 0.0 {
-        args.push("-t".into());
-        args.push(format!("{duration}"));
-    }
-    let temp = temp_output_path();
-    args.push(temp.to_string_lossy().into_owned());
-
-    run_ffmpeg(args, "muxing").await?;
-    finalize_output(&temp, &output_path)
+    mux_audio_and_finalize(base, duration, "muxing", &output_path).await
 }
 
 /// Fallback path: encode a JPEG frame sequence (`f%06d.jpg`) with libx264 and mux audio.
+/// Audio is copied verbatim from the source (lossless); see `mux_audio_and_finalize`.
 #[tauri::command]
 pub async fn encode_frames(
     frames_dir: String,
@@ -147,7 +171,7 @@ pub async fn encode_frames(
     duration: f64,
 ) -> Result<(), String> {
     let input = format!("{}/{}", frames_dir.trim_end_matches(['/', '\\']), pattern);
-    let mut args: Vec<String> = vec![
+    let base: Vec<String> = vec![
         "-y".into(),
         "-nostdin".into(),
         "-framerate".into(),
@@ -170,22 +194,8 @@ pub async fn encode_frames(
         "18".into(),
         "-pix_fmt".into(),
         "yuv420p".into(),
-        "-c:a".into(),
-        "aac".into(),
-        "-b:a".into(),
-        "320k".into(),
-        "-ar".into(),
-        "48000".into(),
         "-movflags".into(),
         "+faststart".into(),
     ];
-    if duration > 0.0 {
-        args.push("-t".into());
-        args.push(format!("{duration}"));
-    }
-    let temp = temp_output_path();
-    args.push(temp.to_string_lossy().into_owned());
-
-    run_ffmpeg(args, "encoding").await?;
-    finalize_output(&temp, &output_path)
+    mux_audio_and_finalize(base, duration, "encoding", &output_path).await
 }

@@ -1,7 +1,7 @@
 {
   "$schema": "../node_modules/@tauri-apps/cli/config.schema.json",
-  "productName": "Lyric Video Studio",
-  "version": "0.3.0",
+  "productName": "The Rest",
+  "version": "0.4.0",
   "identifier": "com.insidewill.lyricvideostudio",
   "build": {
     "frontendDist": "../dist",
@@ -12,11 +12,11 @@
   "app": {
     "windows": [
       {
-        "title": "Lyric Video Studio",
+        "title": "the rest",
         "width": 1280,
-        "height": 860,
-        "minWidth": 1000,
-        "minHeight": 700,
+        "height": 840,
+        "minWidth": 1080,
+        "minHeight": 720,
         "resizable": true,
         "fullscreen": false,
         "dragDropEnabled": false,
@@ -37,8 +37,8 @@
     "targets": "all",
     "category": "Video",
     "copyright": "© insidewill · MIT License",
-    "shortDescription": "Turn album art, audio, and lyrics into a 1080p60 lyric video — 100% offline.",
-    "longDescription": "Lyric Video Studio is an offline desktop app that renders YouTube-ready 1080p60 MP4 lyric videos from your album art, audio, and lyrics. All rendering runs locally on your machine (GPU H.264 encoding via WebCodecs where available, bundled FFmpeg for muxing) — no login, no upload, no server.",
+    "shortDescription": "Just make music. the rest handles beats, lyric videos, and everything after.",
+    "longDescription": "the rest is a local-first desktop toolkit for underground artists: grab beats with auto key/BPM tagging, sync lyrics to your track, and render YouTube/Reels-ready lyric videos (GPU H.264 + bundled FFmpeg, source-quality audio) — no login, no upload, no server.",
     "icon": [
       "icons/32x32.png",
       "icons/128x128.png",

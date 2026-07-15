@@ -7,6 +7,7 @@ import { getDominantColor } from '../utils/colorUtils';
 import { loadProject, saveProject, projectMediaSrc, projectFilePath } from '../lib/storage';
 import { getSpectrogram, sampleBands, type Spectrogram } from '../lib/spectrogram';
 import { springSoft } from '../lib/motion';
+import { useI18n } from '../lib/i18n';
 import { IconPlay, IconArrowLeft, IconFilm, IconWave, IconTimeline } from './icons';
 import { DEFAULT_RENDER_OPTIONS, type ProjectData, type AspectRatio, type RenderOptions } from '../types';
 
@@ -23,6 +24,7 @@ function formatTime(sec: number): string {
 }
 
 export default function Preview({ projectId, onGenerate, onBack }: Props) {
+  const { t } = useI18n();
   const [project, setProject] = useState<ProjectData | null>(null);
   const [artworkImg, setArtworkImg] = useState<HTMLImageElement | null>(null);
   const [accentColor, setAccentColor] = useState<[number, number, number]>([200, 160, 80]);
@@ -130,22 +132,24 @@ export default function Preview({ projectId, onGenerate, onBack }: Props) {
   const pct = duration > 0 ? (currentTime / duration) * 100 : 0;
 
   return (
-    <div className="max-w-5xl mx-auto">
-      <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={springSoft} className="text-center mb-6">
-        <h2 className="text-2xl font-bold tracking-tight" style={{ fontFamily: 'var(--font-display)' }}>Preview</h2>
-        <p className="text-xs mt-1.5" style={{ color: 'var(--color-text-muted)' }}>
-          Space 재생/정지 · ← → 5초 이동 · 타임라인 드래그로 탐색
+    <div className="h-full min-h-0 w-full max-w-5xl mx-auto px-6 py-4 flex flex-col">
+      <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={springSoft} className="text-center mb-3 shrink-0">
+        <h2 className="text-xl font-bold tracking-tight" style={{ fontFamily: 'var(--font-display)' }}>{t('pv.title')}</h2>
+        <p className="text-[11px] mt-1" style={{ color: 'var(--color-text-muted)' }}>
+          {t('pv.hint')}
         </p>
       </motion.div>
 
-      <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }}
-        transition={{ type: 'spring', stiffness: 200, damping: 20 }}
-        className="relative rounded-2xl overflow-hidden mx-auto"
+      <div className="flex-1 min-h-0 flex items-center justify-center">
+      <motion.div initial={{ opacity: 0, scale: 0.97 }} animate={{ opacity: 1, scale: 1 }}
+        transition={{ type: 'spring', bounce: 0, duration: 0.45 }}
+        className="relative rounded-2xl overflow-hidden"
         style={{
           boxShadow: '0 20px 60px rgba(0,0,0,0.5)',
           border: '1px solid rgba(255,255,255,0.1)',
           aspectRatio: aspect === '9:16' ? '9 / 16' : '16 / 9',
-          ...(aspect === '9:16' ? { height: '66vh', width: 'auto' } : { width: '100%' }),
+          height: '100%',
+          maxWidth: '100%',
         }}>
         <canvas ref={canvasRef}
           width={aspect === '9:16' ? 720 : 1280}
@@ -172,15 +176,16 @@ export default function Preview({ projectId, onGenerate, onBack }: Props) {
           </div>
         </div>
       </motion.div>
+      </div>
 
-      <div className="flex justify-between text-xs mt-2 px-1" style={{ fontFamily: 'var(--font-mono)', color: 'var(--color-text-muted)' }}>
+      <div className="flex justify-between text-xs mt-2 px-1 shrink-0" style={{ fontFamily: 'var(--font-mono)', color: 'var(--color-text-muted)' }}>
         <span>{formatTime(currentTime)}</span>
         <span>{formatTime(duration)}</span>
       </div>
 
       {/* Style options — reflected live in the preview and baked into the render */}
-      <div className="flex items-center justify-center gap-2 mt-4">
-        {([['EQ', <IconWave size={13} />, showEq, toggleEq], ['타임라인', <IconTimeline size={13} />, showTimeline, toggleTimeline]] as const).map(([label, icon, active, onClick]) => (
+      <div className="flex items-center justify-center gap-2 mt-3 shrink-0">
+        {([['EQ', <IconWave size={13} />, showEq, toggleEq], [t('pv.timeline'), <IconTimeline size={13} />, showTimeline, toggleTimeline]] as const).map(([label, icon, active, onClick]) => (
           <motion.button key={label} whileTap={{ scale: 0.95 }} onClick={onClick} transition={springSoft}
             className="px-3.5 py-1.5 rounded-full text-xs font-semibold flex items-center gap-1.5 transition-colors"
             style={{
@@ -202,22 +207,22 @@ export default function Preview({ projectId, onGenerate, onBack }: Props) {
               color: aspect === a ? '#000' : 'var(--color-text-muted)',
               border: '1px solid rgba(255,255,255,0.1)',
             }}>
-            {a === '9:16' ? '9:16 릴스' : '16:9'}
+            {a === '9:16' ? t('pv.reels') : '16:9'}
           </motion.button>
         ))}
       </div>
 
-      <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }} className="flex gap-3 mt-4">
+      <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }} className="flex gap-3 mt-3 shrink-0">
         <motion.button whileTap={{ scale: 0.98 }} transition={springSoft} onClick={onBack}
-          className="flex-1 py-3.5 rounded-xl font-semibold text-sm flex items-center justify-center gap-1.5"
+          className="flex-1 py-3 rounded-xl font-semibold text-sm flex items-center justify-center gap-1.5"
           style={{ fontFamily: 'var(--font-display)', background: 'rgba(255,255,255,0.06)', color: 'var(--color-text-secondary)' }}>
-          <IconArrowLeft size={16} /> 싱크로
+          <IconArrowLeft size={16} /> {t('pv.toSync')}
         </motion.button>
         <motion.button
           whileHover={{ scale: 1.01, y: -1 }} whileTap={{ scale: 0.98 }} transition={springSoft} onClick={onGenerate}
-          className="flex-1 py-3.5 rounded-xl font-semibold text-sm flex items-center justify-center gap-2"
+          className="flex-1 py-3 rounded-xl font-semibold text-sm flex items-center justify-center gap-2"
           style={{ fontFamily: 'var(--font-display)', background: '#ffffff', color: '#000000', boxShadow: '0 8px 30px rgba(255,255,255,0.12)' }}>
-          <IconFilm size={17} /> 렌더로
+          <IconFilm size={17} /> {t('pv.toRender')}
         </motion.button>
       </motion.div>
     </div>

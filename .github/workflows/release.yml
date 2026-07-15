@@ -61,7 +61,7 @@ jobs:
           args: --target ${{ matrix.target }}
           # On a tag push, create/append to a draft release; on manual runs, just build.
           tagName: ${{ github.ref_type == 'tag' && github.ref_name || '' }}
-          releaseName: 'Lyric Video Studio ${{ github.ref_name }}'
+          releaseName: 'the rest ${{ github.ref_name }}'
           releaseDraft: true
           releaseBody: |
             ### Downloads

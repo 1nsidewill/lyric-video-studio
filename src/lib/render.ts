@@ -39,7 +39,7 @@ function loadImage(src: string): Promise<HTMLImageElement> {
   img.src = src;
   return new Promise((resolve, reject) => {
     img.onload = () => resolve(img);
-    img.onerror = () => reject(new Error('앨범아트를 불러올 수 없습니다.'));
+    img.onerror = () => reject(new Error('앨범아트를 불러올 수 없습니다 (failed to load artwork)'));
   });
 }
 
@@ -90,7 +90,7 @@ export async function renderProject(opts: RenderOptions): Promise<void> {
   for (const l of lyrics) if (l.singer) getSingerColor(l.singer);
 
   const duration = await probeDuration(convertFileSrc(audioPath), project.audio_duration ?? 0);
-  if (duration < 1) throw new Error('오디오 길이를 불러올 수 없습니다. 다시 시도해주세요.');
+  if (duration < 1) throw new Error('오디오 길이를 불러올 수 없습니다 (could not read audio duration)');
 
   // Reactive-EQ spectrogram (cached from the preview step) + persisted style options.
   const spec = await getSpectrogram(projectId, audioPath).catch(() => null);
@@ -251,7 +251,7 @@ async function renderFallback(
       if (spec && bands) sampleBands(spec, t, bands);
       drawLyricFrame(ctx, img, renderData, t, accent, state, { bands, showEq: ropts.show_eq, showTimeline: ropts.show_timeline, duration });
       const blob = await new Promise<Blob | null>((r) => canvas.toBlob(r, 'image/jpeg', 0.92));
-      if (!blob) throw new Error('프레임 인코딩 실패');
+      if (!blob) throw new Error('프레임 인코딩 실패 (frame encode failed)');
       const name = `f${String(f).padStart(6, '0')}.jpg`;
       await writeFile(await join(framesDir, name), new Uint8Array(await blob.arrayBuffer()));
 

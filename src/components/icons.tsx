@@ -81,3 +81,15 @@ export const IconTimeline = (p: IconProps) => (
 export const IconRefresh = (p: IconProps) => (
   <Icon {...p}><path d="M20 8a8 8 0 1 0 1.5 6" /><path d="M20 4v4h-4" /></Icon>
 );
+export const IconHome = (p: IconProps) => (
+  <Icon {...p}><path d="M4 10.5 12 4l8 6.5" /><path d="M6 9.5V19a1 1 0 0 0 1 1h3.5v-5h3v5H17a1 1 0 0 0 1-1V9.5" /></Icon>
+);
+export const IconDownload = (p: IconProps) => (
+  <Icon {...p}><path d="M12 4v11M8 11l4 4 4-4" /><path d="M5 15v3a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-3" /></Icon>
+);
+export const IconGlobe = (p: IconProps) => (
+  <Icon {...p}><circle cx="12" cy="12" r="8.5" /><path d="M3.5 12h17M12 3.5c2.6 2.3 3.9 5.2 3.9 8.5s-1.3 6.2-3.9 8.5c-2.6-2.3-3.9-5.2-3.9-8.5s1.3-6.2 3.9-8.5Z" /></Icon>
+);
+export const IconLink = (p: IconProps) => (
+  <Icon {...p}><path d="M10 14a4.5 4.5 0 0 0 6.4.4l2.3-2.3a4.5 4.5 0 0 0-6.4-6.4l-1.2 1.2" /><path d="M14 10a4.5 4.5 0 0 0-6.4-.4l-2.3 2.3a4.5 4.5 0 0 0 6.4 6.4l1.2-1.2" /></Icon>
+);

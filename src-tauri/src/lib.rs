@@ -1,3 +1,4 @@
+mod downloader;
 mod render;
 
 use tauri::Manager;
@@ -35,7 +36,11 @@ pub fn run() {
         })
         .invoke_handler(tauri::generate_handler![
             render::mux_h264,
-            render::encode_frames
+            render::encode_frames,
+            downloader::ytdlp_status,
+            downloader::ytdlp_install,
+            downloader::ytdlp_meta,
+            downloader::ytdlp_download
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

@@ -1,188 +1,167 @@
-# 🎵 Lyric Video Studio
-
-> **Offline desktop app** that turns album art + audio + lyrics into a YouTube-ready **1080p60 MP4** lyric video — rendered entirely on your own machine.
-
-앨범아트 · 오디오 · 가사만 있으면 **내 컴퓨터에서 바로** YouTube용 리릭 비디오(1920×1080 · 60fps · H.264)를 만드는 **윈도우/맥 데스크톱 앱**입니다. 로그인도, 업로드도, 서버도 없습니다.
-
 <p align="center">
-  <img src="src-tauri/icons/128x128@2x.png" width="128" alt="Lyric Video Studio" />
+  <img src="src-tauri/icons/128x128@2x.png" width="110" alt="the rest" />
 </p>
 
-## 🎬 Demo / 미리보기
+<h1 align="center">the rest</h1>
+
+<p align="center"><b>음악 만들기나 해. 나머지는 내가 해줄게.</b><br/>
+<sub>Just make music. I'll do the rest.</sub></p>
+
+<p align="center">
+  언더그라운드 아티스트를 위한 <b>로컬 퍼스트 데스크톱 툴킷</b> — 비트 받고, 가사 싱크하고, 리릭 비디오 뽑는 것까지 전부 내 PC에서.<br/>
+  <sub>A local-first desktop toolkit for underground artists — beats in, lyric videos out, all on your own machine.</sub>
+</p>
+
+<p align="center">
+  <a href="https://github.com/1nsidewill/lyric-video-studio/releases/latest"><img src="https://img.shields.io/github/v/release/1nsidewill/lyric-video-studio?display_name=tag&style=flat-square&color=white&labelColor=111" alt="release"/></a>
+  <img src="https://img.shields.io/badge/platform-macOS%20%C2%B7%20Windows-white?style=flat-square&labelColor=111" alt="platforms"/>
+  <img src="https://img.shields.io/badge/local--first-no%20server%20%C2%B7%20no%20login-white?style=flat-square&labelColor=111" alt="local-first"/>
+  <img src="https://img.shields.io/github/license/1nsidewill/lyric-video-studio?style=flat-square&color=white&labelColor=111" alt="license"/>
+</p>
+
+---
+
+## 🇰🇷 한국어 <sub>([English below](#-english))</sub>
+
+### 미리보기
 
 https://github.com/user-attachments/assets/ab4e6e86-2beb-4767-b332-e23a5e704d62
 
----
+### 무엇을 하는 앱인가요?
 
-## ⬇️ Download / 다운로드
+**the rest**는 두 개의 모듈로 이루어져 있습니다. 로그인 없음, 업로드 없음, 서버 없음 — 렌더링·다운로드·변환 전부 **내 컴퓨터에서** 돌아갑니다.
 
-최신 설치 파일은 **[Releases](https://github.com/1nsidewill/lyric-video-studio/releases/latest)** 에서 받으세요.
+| 모듈 | 하는 일 |
+|---|---|
+| 🎧 **비트 다운로더** | 유튜브 링크를 붙여넣으면 캡션(제목·설명)에서 **키(Key)와 BPM을 자동 인식**해 파일명까지 정리(`prod.X - Night [140bpm F#m].wav`). WAV · MP3 · FLAC 저장, 받은 비트는 **보관함**에 키·BPM과 함께 기록 |
+| 🎬 **리릭 비디오 스튜디오** | 오디오 + 앨범아트 + 가사 → 키보드로 리듬 타며 싱크 → **1080p60 MP4** 렌더. 앨범 색을 따라가는 앰비언트 배경, 음악에 반응하는 EQ 웨이브폼, 타임라인, **9:16 릴스 포맷**까지 |
 
-| OS | 파일 | 비고 |
-|---|---|---|
-| **Windows 10/11** | `Lyric Video Studio_x.y.z_x64-setup.exe` (NSIS) 또는 `..._x64_en-US.msi` | WebView2 자동 설치 |
-| **macOS (Apple Silicon · M1~)** | `Lyric Video Studio_x.y.z_aarch64.dmg` | |
+### 다운로드
 
-FFmpeg은 앱에 **내장**되어 있어 따로 설치할 필요가 없습니다. 처음 한 번만 수동으로 설치하면, 이후 새 버전은 **앱 안에서 자동 업데이트**됩니다.
+최신 설치 파일: **[Releases](https://github.com/1nsidewill/lyric-video-studio/releases/latest)**
 
-### 설치 방법
+| OS | 파일 |
+|---|---|
+| **Windows 10/11** | `The Rest_x.y.z_x64-setup.exe` (권장) 또는 `..._x64_en-US.msi` |
+| **macOS (Apple Silicon · M1 이상)** | `The Rest_x.y.z_aarch64.dmg` |
+
+- FFmpeg **내장** — 따로 설치할 것 없음
+- 처음 한 번만 수동 설치하면 이후 새 버전은 **앱 안에서 자동 업데이트**
+- 렌더 결과물의 오디오는 **원본 음원 그대로**(재인코딩 없이 스트림 복사) 담깁니다
+
+### 설치
 
 **Windows**
-1. `.exe`(권장) 또는 `.msi` 실행 → 안내에 따라 설치
-2. 서명되지 않은 앱이라 SmartScreen이 뜨면 **추가 정보 → 실행**을 누르세요.
+1. `.exe` 실행 → 안내에 따라 설치
+2. 서명되지 않은 앱이라 SmartScreen이 뜨면 **추가 정보 → 실행**
 
 **macOS**
-1. `.dmg` 열고 **Lyric Video Studio** 를 `Applications` 로 드래그
-2. 서명(공증)되지 않은 앱이라, 처음 실행하면 **"'Lyric Video Studio'은(는) 손상되었기 때문에 열 수 없습니다"** 경고가 뜹니다. (손상된 게 아니라 브라우저 다운로드에 붙는 격리(quarantine) 속성 때문입니다.) 터미널에서 아래 한 줄로 해제하세요:
+1. `.dmg` 열고 **The Rest**를 `Applications`로 드래그
+2. 처음 실행 시 *"손상되었기 때문에 열 수 없습니다"* 경고가 뜹니다 — 손상이 아니라 다운로드에 붙는 격리(quarantine) 속성 때문입니다. 터미널에서 한 줄:
    ```bash
-   /usr/bin/xattr -dr com.apple.quarantine "/Applications/Lyric Video Studio.app"
+   /usr/bin/xattr -dr com.apple.quarantine "/Applications/The Rest.app"
    ```
-   그 뒤 앱을 다시 실행하면 정상적으로 열립니다.
+   > ⚠️ 반드시 `/usr/bin/xattr` **전체 경로**로 실행하세요. pyenv/Homebrew의 다른 `xattr`가 PATH를 가리면 `option -r not recognized` 에러가 납니다.
 
-   > ⚠️ 반드시 **`/usr/bin/xattr`** 전체 경로로 실행하세요. Homebrew/pyenv 등이 설치한 다른 `xattr`가 PATH를 가리면 `option -r not recognized` 에러가 납니다.
+> 코드 서명 인증서 없이 배포되어 위 경고가 나옵니다. 소스가 공개되어 있으니 직접 빌드해도 됩니다 → [Build from source](#build-from-source)
 
-> 코드 서명 인증서 없이 배포하므로 위 경고가 나옵니다. 소스가 공개되어 있으니 직접 빌드해서 쓰셔도 됩니다(아래 [Build from source](#-build-from-source)).
+### 리릭 비디오 스튜디오 — 흐름
 
----
-
-## ✨ Features / 주요 기능
-
-| | |
-|---|---|
-| 🎨 **Album Art Crop** | 1:1 크롭 도구 내장 |
-| 🎵 **Audio Support** | MP3 / WAV / FLAC / OGG / M4A |
-| 🖐 **Drag & Drop** | 오디오·이미지 파일을 창에 끌어다 놓기 |
-| ⌨️ **Live Lyric Sync** | 키보드로 실시간 타임스탬프 입력 |
-| 👤 **Multi-Singer Tags** | `[이름]` 문법으로 자동 파트 구분 · 색상 배지 |
-| 🎬 **Realtime Preview** | Canvas 실시간 프리뷰 (seeking 지원) |
-| ⚡ **Local GPU Render** | WebCodecs H.264 하드웨어 인코딩 + 내장 FFmpeg mux |
-| 📹 **Output** | 1920×1080 · 60fps · H.264 · AAC 320kbps |
-| 📋 **YT Description** | YouTube 설명란 자동 생성기 (크레딧 포함) |
-| 💾 **Local Projects** | 프로젝트가 내 PC에 저장 · 최근 목록에서 이어서 작업 |
-
----
-
-## 📖 How to Use / 사용법
-
-### 1. Upload / 업로드
-1. **Album Art** 이미지(JPG/PNG)를 올리고 1:1로 크롭
-2. **Audio** 파일(MP3/WAV/FLAC…)을 올리기
-3. **Lyrics** 가사를 입력 (한 줄 = 한 라인)
-
-> 파일은 창에 **드래그앤드롭**으로도 넣을 수 있어요.
-
-**🎤 Multi-Singer 문법**
 ```
-[Yi Will]
-Ben and Jerry's flavor you've got
-All my friends 다 안달이 났지
-
-[Halim]
-어쩌면 우린 천생연분일지 몰라
+① 업로드          ② 싱크                ③ 프리뷰            ④ 렌더
+오디오·아트·가사 →  Space로 리듬 타며   →  실시간 캔버스,     →  GPU H.264 + FFmpeg
+(WAV·MP3·FLAC)     타임스탬프 히트        EQ·타임라인 토글      1080p60 MP4
 ```
-`[이름]` 으로 시작하는 줄은 싱어 태그로 인식되고, 이후 줄들이 해당 싱어 파트로 지정됩니다.
 
-### 2. Sync / 싱크
-노래를 들으면서 키보드로 타이밍을 찍습니다.
+- **싱크**: `Space` 히트 · `←` 되돌리기 · `Tab` 건너뛰기 · 줄 클릭 = 그 줄만 재조정 · 더블클릭 = 가사 수정 · **가사 편집**으로 빠진 줄을 넣어도 기존 싱크는 유지
+- **멀티 싱어**: 가사에 `[이름]` 줄을 넣으면 파트별 색상 자동 배정
+- **스타일**: 앨범 dominant 컬러 → 앰비언트 배경 + EQ 색 자동 추출 · EQ/타임라인 토글 · 16:9 & 9:16
+- **출력**: 1920×1080(또는 1080×1920) · 60fps · H.264 · **원본 음질 오디오** · YouTube 설명란 자동 생성(크레딧 포함)
 
-| Key | Action |
-|-----|--------|
-| `Space` | ▶ 재생 / 현재 라인 타임스탬프 커밋 |
-| `Backspace` | ↩ 이전 라인 롤백 |
-| `Tab` | ⏭ 현재 라인 스킵 |
-| `Esc` | ⏸ 일시정지 |
+### 비트 다운로더 — 어떻게 인식하나요?
 
-라인 클릭 → 해당 구간 seek · ✏️ 수정 · 🗑 삭제 · **SKIP → PREVIEW** 로 나머지 자동 채우기.
+type beat 캡션의 관례(`"[FREE] Drake Type Beat | 140 BPM | F# minor"`, `[Am 148bpm]`, `Key: Db minor`)를 정규화합니다.
 
-### 3. Preview / 미리보기
-`Space` 재생/정지 · `←`/`→` 5초 이동 · 타임라인 클릭·드래그로 seek.
+- **BPM**: `bpm` 인접 숫자만, **30–200** 범위로 제한
+- **키**: `F# minor`·`Dbm`·`Am` 등 → `F#m`처럼 정규화(플랫→샤프 통일). *"Who Am I"* 같은 영어 단어는 오탐하지 않도록 가드
+- 인식 실패 시 직접 입력 가능 · 챕터 타임스탬프(훅 위치 등)도 보관함에 함께 저장
+- 엔진은 오픈소스 **yt-dlp**를 최초 1회 받아(약 35MB) 이 PC에서만 실행
 
-### 4. Render / 렌더
-1. (선택) **YouTube Description** 크레딧 입력 → COPY 로 복사
-2. **START RENDER** → 저장 위치 선택 → 로컬에서 렌더링
-3. 완료 후 **폴더에서 보기 / 영상 열기**
+> ⚠️ **권리가 있는 콘텐츠만 다운로드하세요.** 다운로드는 전부 사용자의 PC에서 사용자 책임으로 실행되며, 프로듀서의 라이선스 조건(free / free-for-profit 등)을 확인하는 것은 사용자 몫입니다.
 
-> **렌더 엔진**: WebCodecs(GPU H.264)가 되는 환경에서는 GPU로 인코딩 후 내장 FFmpeg으로 오디오만 mux(재인코딩 없음). 미지원 환경에서는 프레임 시퀀스를 내장 FFmpeg(libx264)으로 인코딩하는 방식으로 자동 전환됩니다.
+### Build from source
 
----
-
-## 🎬 Output Spec
-
-| 항목 | 값 |
-|---|---|
-| 해상도 | 1920 × 1080 (Full HD) |
-| 프레임레이트 | 60fps (fallback 30fps) |
-| 비디오 코덱 | H.264 (High Profile) |
-| 오디오 코덱 | AAC 320kbps / 48kHz |
-| 컨테이너 | MP4 (`+faststart`) |
-
----
-
-## 🛠 Tech Stack
-
-- **Tauri 2** — Rust 셸 + OS 웹뷰(Windows: WebView2 / macOS: WKWebView), ~수 MB 설치본
-- **React 19 + TypeScript + Vite** — UI
-- **Tailwind CSS v4 · Framer Motion** — 스타일 · 모션
-- **WebCodecs API** — GPU H.264 인코딩
-- **Bundled FFmpeg** — 오디오 mux / fallback 인코딩 (Tauri sidecar)
-- **Pretendard** — 번들 폰트 (오프라인)
-
-프로젝트/미디어는 OS의 앱 데이터 폴더(`$APPLOCALDATA/projects/…`)에 저장되고, 렌더 결과는 사용자가 지정한 위치에 저장됩니다.
-
----
-
-## 🧑‍💻 Build from source
-
-### Prerequisites
-- **Node.js 18+**
-- **Rust** (stable) — https://rustup.rs
-- 플랫폼별 Tauri 사전 요구사항: https://tauri.app/start/prerequisites/
-  - Windows: **WebView2**(Win11 기본 내장) + MSVC Build Tools
-  - macOS: **Xcode Command Line Tools** (`xcode-select --install`)
-
-### Run (dev)
 ```bash
+# 요구사항: Node 20+, Rust (stable), npm
 git clone https://github.com/1nsidewill/lyric-video-studio.git
 cd lyric-video-studio
 npm install
-npm run fetch-ffmpeg   # 플랫폼용 FFmpeg 사이드카를 src-tauri/binaries/ 에 배치
-npm run desktop        # = tauri dev (네이티브 창 실행)
+npm run fetch-ffmpeg   # ffmpeg sidecar 준비 (ffmpeg-static)
+npm run desktop        # 개발 모드 (네이티브 창)
+npm run desktop:build  # 배포 번들 (macOS는 CI=true 필요할 수 있음)
 ```
 
-### Build (production)
+### 기술 스택
+
+`Tauri 2` (Rust) · `React 19` + `Vite 7` + `Tailwind v4` + `Framer Motion 12` · `WebCodecs` GPU H.264 · 번들 `FFmpeg` · 커스텀 radix-2 FFT 스펙트로그램 · `tauri-plugin-updater` 서명 자동 업데이트
+
+---
+
+## 🇺🇸 English
+
+### What is this?
+
+**the rest** is a local-first desktop toolkit for underground artists, made of two modules. No login, no upload, no server — rendering, downloading, and conversion all run **on your own machine**.
+
+| Module | What it does |
+|---|---|
+| 🎧 **Beat Downloader** | Paste a YouTube link and the caption (title + description) is parsed for **key and BPM**, straight into the filename (`prod.X - Night [140bpm F#m].wav`). Saves WAV · MP3 · FLAC and keeps every beat in a **library** with its key/BPM |
+| 🎬 **Lyric Video Studio** | Audio + artwork + lyrics → tap timestamps to the beat → render a **1080p60 MP4**. Ambient background tinted from the album art, a music-reactive EQ waveform, a timeline, and a **9:16 Reels format** |
+
+### Download
+
+Latest installers: **[Releases](https://github.com/1nsidewill/lyric-video-studio/releases/latest)**
+
+| OS | File |
+|---|---|
+| **Windows 10/11** | `The Rest_x.y.z_x64-setup.exe` (recommended) or `..._x64_en-US.msi` |
+| **macOS (Apple Silicon · M1+)** | `The Rest_x.y.z_aarch64.dmg` |
+
+- FFmpeg is **bundled** — nothing else to install
+- Install manually once; new versions arrive via **in-app auto-update**
+- Rendered videos carry **source-quality audio** (stream copy, no re-encode)
+
+### Install
+
+**Windows** — run the `.exe`; if SmartScreen appears, click **More info → Run anyway** (the app is unsigned).
+
+**macOS** — drag **The Rest** into `Applications`. On first launch macOS says the app *"is damaged and can't be opened"* — that's the download quarantine flag, not actual damage. Clear it once:
+
 ```bash
-npm run fetch-ffmpeg
-npm run desktop:build  # = tauri build → src-tauri/target/release/bundle/ 에 설치본 생성
+/usr/bin/xattr -dr com.apple.quarantine "/Applications/The Rest.app"
 ```
 
-> macOS에서 DMG 생성 단계(`bundle_dmg.sh`)가 Finder 접근 없이 실패하면 `CI=true npm run desktop:build` 로 실행하세요 (창 레이아웃 스크립트를 건너뜁니다). `.app` 자체는 항상 생성됩니다.
+> ⚠️ Use the full `/usr/bin/xattr` path — a pyenv/Homebrew `xattr` shadowing your PATH throws `option -r not recognized`.
 
-> `src-tauri/binaries/` 의 FFmpeg 바이너리는 플랫폼별이라 커밋되지 않습니다. `npm run fetch-ffmpeg` 가 [`ffmpeg-static`](https://www.npmjs.com/package/ffmpeg-static) 에서 현재 OS용 정적 바이너리를 받아 Tauri sidecar 이름으로 배치합니다. Windows/macOS 릴리스는 [GitHub Actions](.github/workflows/release.yml) 가 태그 푸시(`v*`) 시 자동 빌드합니다.
+### Lyric Video Studio — flow
 
----
+`① Upload (WAV·MP3·FLAC + PNG·JPG·GIF + lyrics)` → `② Sync (hit Space to the beat)` → `③ Preview (live canvas, EQ/timeline toggles, 16:9/9:16)` → `④ Render (GPU H.264 + bundled FFmpeg)`
 
-## 📁 Project Structure
+- **Sync**: `Space` hit · `←` undo · `Tab` skip · click a line to re-adjust just that line · double-click to edit its text · the **Edit lyrics** modal lets you add missing lines while keeping existing timings
+- **Multi-singer**: `[Name]` lines split parts with per-singer colors
+- **Output**: 1920×1080 (or 1080×1920) · 60fps · H.264 · source-quality audio · auto-generated YouTube description with credits
 
-```
-lyric-video-studio/
-├── src/                     # React 프론트엔드
-│   ├── components/          # FileUpload · LyricSync · Preview · Generate …
-│   ├── lib/
-│   │   ├── storage.ts       # 로컬 프로젝트 CRUD (Tauri fs + asset protocol)
-│   │   └── render.ts        # 캔버스 인코딩 → 임시파일 → Rust ffmpeg 커맨드
-│   └── utils/canvasRenderer.ts   # 프리뷰·렌더 공용 프레임 엔진
-├── src-tauri/               # Tauri (Rust) 셸
-│   ├── src/render.rs         # ffmpeg sidecar mux/encode + 진행률 이벤트
-│   ├── binaries/             # FFmpeg 사이드카 (git-ignored, fetch-ffmpeg 로 생성)
-│   ├── capabilities/         # fs/dialog/shell/opener 권한 (앱 데이터로 스코프)
-│   └── tauri.conf.json
-└── .github/workflows/release.yml   # Win + macOS 빌드/릴리스
-```
+### Beat Downloader — detection
 
----
+Normalizes the type-beat caption conventions (`"[FREE] Drake Type Beat | 140 BPM | F# minor"`, `[Am 148bpm]`, `Key: Db minor`):
 
-## 📄 License
+- **BPM**: digits adjacent to "bpm", clamped to **30–200**
+- **Key**: `F# minor` / `Dbm` / `Am` → normalized like `F#m` (flats folded to sharps), with guards so English words ("Who **Am** I") don't false-positive
+- Manual override when nothing is detected · chapter timestamps are stored with each beat
+- The engine is open-source **yt-dlp**, fetched once (~35MB) and run only on this PC
 
-MIT License © [insidewill](https://github.com/1nsidewill)
+> ⚠️ **Only download content you have the rights to.** Downloads run locally, on your machine and your responsibility; checking each producer's license terms is on you.
 
-Made with ❤️ — open source, free to use.
+### License
+
+MIT © [insidewill](https://github.com/1nsidewill)

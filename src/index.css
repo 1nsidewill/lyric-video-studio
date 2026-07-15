@@ -35,15 +35,23 @@ html, body, #root {
   margin: 0;
 }
 
+/* Desktop app shell: the window never scrolls — panels scroll internally. */
 body {
   background: var(--color-bg-primary);
   color: var(--color-text-primary);
   font-family: var(--font-body);
-  overflow-x: hidden;
+  overflow: hidden;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   font-optical-sizing: auto;
   text-rendering: optimizeLegibility;
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+input, textarea, [contenteditable] {
+  user-select: text;
+  -webkit-user-select: text;
 }
 
 /* Apple-style typography: large display text reads tighter as it grows. */
