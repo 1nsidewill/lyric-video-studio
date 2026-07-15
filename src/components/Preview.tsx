@@ -23,6 +23,28 @@ function formatTime(sec: number): string {
   return `${m}:${String(s).padStart(2, '0')}`;
 }
 
+/** Letterbox: the largest w×h of the given ratio that fits the stage. Measured with a
+ *  ResizeObserver — CSS aspect-ratio + max constraints silently break the ratio when
+ *  the window gets tall, which stretched the preview. */
+function useLetterbox(ratio: number) {
+  const stageRef = useRef<HTMLDivElement>(null);
+  const [box, setBox] = useState({ w: 0, h: 0 });
+  useEffect(() => {
+    const el = stageRef.current;
+    if (!el) return;
+    const compute = () => {
+      const r = el.getBoundingClientRect();
+      const w = Math.max(0, Math.min(r.width, r.height * ratio));
+      setBox({ w: Math.round(w), h: Math.round(w / ratio) });
+    };
+    compute();
+    const ro = new ResizeObserver(compute);
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, [ratio]);
+  return { stageRef, box };
+}
+
 export default function Preview({ projectId, onGenerate, onBack }: Props) {
   const { t } = useI18n();
   const [project, setProject] = useState<ProjectData | null>(null);
@@ -39,6 +61,7 @@ export default function Preview({ projectId, onGenerate, onBack }: Props) {
   const [showEq, setShowEq] = useState(DEFAULT_RENDER_OPTIONS.show_eq);
   const [showTimeline, setShowTimeline] = useState(DEFAULT_RENDER_OPTIONS.show_timeline);
   const [aspect, setAspect] = useState<AspectRatio>(DEFAULT_RENDER_OPTIONS.aspect);
+  const { stageRef, box } = useLetterbox(aspect === '9:16' ? 9 / 16 : 16 / 9);
   const { isPlaying, currentTime, duration, toggle, seek } = useAudioPlayer(audioSrc);
 
   const persistOptions = useCallback(async (opts: RenderOptions) => {
@@ -140,16 +163,15 @@ export default function Preview({ projectId, onGenerate, onBack }: Props) {
         </p>
       </motion.div>
 
-      <div className="flex-1 min-h-0 flex items-center justify-center">
+      <div ref={stageRef} className="flex-1 min-h-0 flex items-center justify-center">
       <motion.div initial={{ opacity: 0, scale: 0.97 }} animate={{ opacity: 1, scale: 1 }}
         transition={{ type: 'spring', bounce: 0, duration: 0.45 }}
         className="relative rounded-2xl overflow-hidden"
         style={{
           boxShadow: '0 20px 60px rgba(0,0,0,0.5)',
           border: '1px solid rgba(255,255,255,0.1)',
-          aspectRatio: aspect === '9:16' ? '9 / 16' : '16 / 9',
-          height: '100%',
-          maxWidth: '100%',
+          width: box.w || undefined,
+          height: box.h || undefined,
         }}>
         <canvas ref={canvasRef}
           width={aspect === '9:16' ? 720 : 1280}
