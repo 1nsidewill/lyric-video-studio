@@ -1,6 +1,6 @@
 [package]
 name = "app"
-version = "0.4.2"
+version = "0.4.3"
 description = "the rest — local-first toolkit for underground artists (beats, lyric videos)"
 authors = ["insidewill"]
 license = "MIT"
