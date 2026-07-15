@@ -34,13 +34,29 @@ export function parseBpm(text: string): number | null {
   const m =
     text.match(/(\d{2,3})\s*bpm\b/i) ??
     text.match(/\bbpm\s*[:\-–]?\s*(\d{2,3})/i) ??
-    text.match(/\btempo\s*[:\-–]?\s*(\d{2,3})/i);
+    text.match(/\btempo\s*[:\-–]?\s*(\d{2,3})/i) ??
+    // BeatStars-style combined label puts the number at a distance:
+    // "Key|Bpm - G sharp major|115". Allow a short non-digit gap after "bpm".
+    text.match(/\bbpm\b[^\d\n]{0,24}(\d{2,3})\b/i);
   if (!m) return null;
   const n = parseInt(m[1], 10);
   return n >= 30 && n <= 200 ? n : null;
 }
 
-export function parseKey(text: string): string | null {
+/** Fold word-form accidentals into symbols: "G sharp" → "G#", "B flat" → "Bb". */
+function foldAccidentalWords(text: string): string {
+  return text
+    .replace(/\b([A-Ga-g])[\s-]*(?:sharp|♯)\b/gi, '$1#')
+    .replace(/\b([A-Ga-g])[\s-]*flat\b/gi, '$1b');
+}
+
+export function parseKey(rawText: string): string | null {
+  const text = foldAccidentalWords(rawText);
+  // 0) BeatStars combined label: "Key|Bpm - G# major|115", "Key/BPM: Am/140"
+  const combo = text.match(
+    new RegExp(String.raw`\bkey\s*[|/]\s*bpm\s*[-:–—]*\s*(${NOTE})\s*(major|minor|maj|min|m)?\b`, 'i'));
+  if (combo) return normalizeKey(combo[1], combo[2]);
+
   // 1) Explicit label: "Key: Am", "key of F# minor", "KEY - Dbm"
   const labeled = text.match(
     new RegExp(String.raw`\bkey(?:\s*of)?\s*[:\-–]?\s*(${NOTE})\s*(major|minor|maj|min|m)?\b`, 'i'));
